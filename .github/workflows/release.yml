@@ -1,0 +1,133 @@
+name: AgentForge Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
+          cache-dependency-path: backend/gofiber-gorm-next/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+      - name: Verify backend
+        working-directory: backend/gofiber-gorm-next
+        run: go test ./... && go vet ./...
+      - name: Install frontend dependencies
+        working-directory: frontend/web
+        run: npm ci
+      - name: Verify frontend
+        working-directory: frontend/web
+        run: npm run check
+
+  web:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+      - working-directory: frontend/web
+        run: npm ci && npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agentforge-web
+          path: frontend/web/dist
+          if-no-files-found: error
+
+  package:
+    needs: [verify, web]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            archive_ext: zip
+          - goos: linux
+            goarch: amd64
+            archive_ext: tar.gz
+          - goos: linux
+            goarch: arm64
+            archive_ext: tar.gz
+          - goos: darwin
+            goarch: amd64
+            archive_ext: tar.gz
+          - goos: darwin
+            goarch: arm64
+            archive_ext: tar.gz
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
+          cache-dependency-path: backend/gofiber-gorm-next/go.sum
+      - uses: actions/download-artifact@v4
+        with:
+          name: agentforge-web
+          path: web-dist
+      - name: Build backend
+        env:
+          VERSION: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
+        run: bash devops/scripts/build.sh "${{ matrix.goos }}" "${{ matrix.goarch }}"
+      - name: Assemble immutable bundle
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          ARCHIVE_EXT: ${{ matrix.archive_ext }}
+        run: |
+          bundle="dist/bundle-${GOOS}-${GOARCH}"
+          mkdir -p "$bundle/server" "$bundle/web/dist" "$bundle/deploy"
+          cp "dist/${GOOS}-${GOARCH}/"* "$bundle/server/"
+          cp -R web-dist/. "$bundle/web/dist/"
+          cp -R devops/env devops/nginx devops/systemd "$bundle/deploy/"
+          archive="agentforge_${GITHUB_REF_NAME}_${GOOS}_${GOARCH}.${ARCHIVE_EXT}"
+          if [ "$GOOS" = "windows" ]; then
+            (cd "$bundle" && zip -qr "../$archive" .)
+          else
+            tar -C "$bundle" -czf "dist/$archive" .
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agentforge-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/agentforge_*.${{ matrix.archive_ext }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Generate checksums
+        run: cd release && sha256sum * > checksums.txt
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --verify-tag --generate-notes

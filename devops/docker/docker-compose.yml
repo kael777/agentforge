@@ -1,0 +1,61 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: agentforge
+      MYSQL_USER: agentforge
+      MYSQL_PASSWORD: agentforge
+      MYSQL_ROOT_PASSWORD: root-agentforge
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uagentforge -pagentforge --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  migrate:
+    build:
+      context: ../../backend/gofiber-gorm-next
+      dockerfile: ../../devops/docker/backend.Dockerfile
+    entrypoint: ["/app/migrate"]
+    environment: &app-env
+      APP_ENV: development
+      SERVICE_NAME: gofiber-gorm-next
+      HTTP_ADDR: :55555
+      HTTP_ALLOWED_ORIGINS: http://localhost:5173
+      DATABASE_DSN: "agentforge:agentforge@tcp(mysql:3306)/agentforge?charset=utf8mb4&parseTime=True&loc=UTC"
+      DATABASE_MAX_IDLE_CONNS: 5
+      DATABASE_MAX_OPEN_CONNS: 20
+      DATABASE_CONN_MAX_LIFETIME: 1h
+      JWT_SECRET: local-development-secret-at-least-32-characters
+      JWT_TTL: 24h
+      LOG_LEVEL: info
+      SHUTDOWN_TIMEOUT: 10s
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ../../backend/gofiber-gorm-next
+      dockerfile: ../../devops/docker/backend.Dockerfile
+    environment: *app-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "55555:55555"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:55555/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mysql-data:
+
