@@ -34,7 +34,7 @@ agentforge/
 Windows：
 
 ```powershell
-cd D:\work\work\agentforge
+cd path\to\agentforge
 Copy-Item backend\gofiber-gorm-next\.env.example backend\gofiber-gorm-next\.env
 Copy-Item frontend\web\.env.example frontend\web\.env
 Push-Location frontend\web
