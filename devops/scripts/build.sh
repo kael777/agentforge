@@ -26,7 +26,7 @@ build_target() {
   echo "Building ${goos}/${goarch}..."
 
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath \
-    -ldflags "-s -w -X gofiber-gorm-next/internal/buildinfo.Version=${version} -X gofiber-gorm-next/internal/buildinfo.Commit=${commit} -X gofiber-gorm-next/internal/buildinfo.BuildTime=${build_time}" \
+    -ldflags "-s -w -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.Version=${version} -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.Commit=${commit} -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.BuildTime=${build_time}" \
     -o "${output_dir}/api${extension}" ./cmd/api
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath \
     -ldflags "-s -w" \

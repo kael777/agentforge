@@ -59,7 +59,7 @@ echo Building %BUILD_OS%/%BUILD_ARCH%...
 set "CGO_ENABLED=0"
 set "GOOS=%BUILD_OS%"
 set "GOARCH=%BUILD_ARCH%"
-set "API_LDFLAGS=-s -w -X gofiber-gorm-next/internal/buildinfo.Version=%VERSION% -X gofiber-gorm-next/internal/buildinfo.Commit=%COMMIT% -X gofiber-gorm-next/internal/buildinfo.BuildTime=%BUILD_TIME%"
+set "API_LDFLAGS=-s -w -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.Version=%VERSION% -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.Commit=%COMMIT% -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.BuildTime=%BUILD_TIME%"
 
 go build -trimpath -ldflags "%API_LDFLAGS%" -o "%OUT_DIR%\api%EXT%" ./cmd/api
 if errorlevel 1 exit /b 1

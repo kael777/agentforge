@@ -10,7 +10,7 @@ ARG GIT_COMMIT=unknown
 ARG BUILD_TIME=unknown
 
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
-    -ldflags "-s -w -X gofiber-gorm-next/internal/buildinfo.Version=${VERSION} -X gofiber-gorm-next/internal/buildinfo.Commit=${GIT_COMMIT} -X gofiber-gorm-next/internal/buildinfo.BuildTime=${BUILD_TIME}" \
+    -ldflags "-s -w -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.Version=${VERSION} -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.Commit=${GIT_COMMIT} -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.BuildTime=${BUILD_TIME}" \
     -o /out/api ./cmd/api
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/migrate ./cmd/migrate
 
