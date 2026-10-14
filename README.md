@@ -1,5 +1,8 @@
 # AgentForge
 
+[![AgentForge CI](https://github.com/kael777/agentforge/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kael777/agentforge/actions/workflows/ci.yml)
+[![Secret Scan](https://github.com/kael777/agentforge/actions/workflows/secret-scan.yml/badge.svg?branch=main)](https://github.com/kael777/agentforge/actions/workflows/secret-scan.yml)
+
 AgentForge 是用于学习和展示 Agent 全栈工程能力的独立项目。后端、前端、DevOps 和文档按职责分离，正式发布由 GitHub Actions 基于版本 Tag 构建。
 
 ## 目录
