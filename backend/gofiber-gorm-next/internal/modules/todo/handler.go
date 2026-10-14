@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log/slog"
 
-	"gofiber-gorm-next/internal/transport/httpx"
+	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/transport/httpx"
 
 	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"

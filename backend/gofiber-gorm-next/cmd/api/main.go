@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"gofiber-gorm-next/internal/app"
-	"gofiber-gorm-next/internal/config"
-	"gofiber-gorm-next/internal/platform/database"
-	"gofiber-gorm-next/internal/platform/logging"
+	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/app"
+	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/config"
+	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/platform/database"
+	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/platform/logging"
 )
 
 func main() {
