@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
+          # go.mod sets the floor (go 1.26.10); using the latest patch here means
+          # standard library fixes are picked up without editing the workflow.
           go-version: "1.26.x"
           cache-dependency-path: backend/api/go.sum
       - run: go test -race ./...
@@ -54,9 +56,37 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
       - run: npm ci
       - run: npm run check
+      # Only runtime dependencies gate the build. Advisories in build tooling are
+      # reviewed separately instead of failing unrelated pull requests.
+      - run: npm audit --omit=dev --audit-level=high
 
-  compose:
+  # Dependency vulnerabilities that are actually reachable from this code.
+  # govulncheck reports only call paths it can prove; "1 module affected but not
+  # called" is information, not a failure.
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.26.x"
+          cache-dependency-path: backend/api/go.sum
+      - name: Install govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Scan API module
+        working-directory: backend/api
+        run: govulncheck ./...
+      - name: Scan realtime module
+        working-directory: backend/ws
+        run: govulncheck ./...
+
+  containers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker compose -f devops/docker/docker-compose.yml config
+      # Building here is what catches a broken Dockerfile or a missing build
+      # argument before a tag does.
+      - run: docker compose -f devops/docker/docker-compose.yml build

@@ -28,7 +28,7 @@ agentforge/
 
 ## 环境要求
 
-- Go 1.26+
+- Go 1.26.10+（`go.mod` 声明的最低工具链版本，低于它会自动下载对应工具链）
 - Node.js 24+
 - Docker 与 Docker Compose
 - Windows 使用 PowerShell；Linux/macOS/CI 可使用 Make 和 Bash

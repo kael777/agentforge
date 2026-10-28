@@ -1,0 +1,11 @@
+# Never let local secrets or build output enter the build context: everything
+# copied here ends up in a layer cache, even when the final stage discards it.
+.env
+.env.*
+!.env.example
+bin/
+dist/
+coverage.out
+*.log
+.git
+.gitignore

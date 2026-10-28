@@ -10,13 +10,19 @@ docker compose -p agentforge -f devops/docker/docker-compose.yml logs -f api
 docker compose -p agentforge -f devops/docker/docker-compose.yml down
 ```
 
-Compose 会依次启动 MySQL 8.4、执行 migration，再启动 `55555` 端口的 API。MySQL 数据保存在命名 volume 中；只有明确需要清空本地数据时才执行：
+Compose 会依次启动 MySQL 8.4、执行 migration，再启动 `55555` 端口的 API 和 `8090` 端口的实时服务。MySQL 数据保存在命名 volume 中；只有明确需要清空本地数据时才执行：
 
 ```bash
 docker compose -p agentforge -f devops/docker/docker-compose.yml down -v
 ```
 
-示例账号密码只用于本地开发，生产环境不得直接使用，也不要把 MySQL `3306` 暴露到公网。
+MySQL 只绑定回环地址，并且映射到宿主机的 `13306`（不是 3306），避免和你本机已装的 MySQL 抢端口：
+
+```bash
+mysql -h 127.0.0.1 -P 13306 -uagentforge -p agentforge
+```
+
+示例账号密码只用于本地开发，生产环境不得直接使用，也不要把 MySQL 端口暴露到公网。
 
 ## 跨平台构建
 
@@ -128,8 +134,13 @@ sudo systemctl reload nginx
 
 GitHub Actions 受平台约束，workflow 必须位于仓库根目录 `.github/workflows`：
 
-- `ci.yml`：后端 test/vet/build、前端 check 和 Compose 配置校验。
+- `ci.yml`：后端与实时服务的 test/vet/build、前端 check、容器镜像构建。
+- `ci.yml` 的 `security` job：`govulncheck` 扫描两个 Go module 中**可达**的依赖漏洞。
+- `ci.yml` 的前端 job：`npm audit --omit=dev` 只对运行时依赖设门禁。
 - `release.yml`：将跨平台 Go 二进制、React `dist` 和部署配置打成同一个不可变制品，生成 SHA256 并创建 GitHub Release。
+
+镜像构建使用固定 digest 的基础镜像（`devops/docker/*.Dockerfile` 的 `FROM ...@sha256:`）。
+升级基础镜像应该是显式动作，不应因为 tag 被重新指向而意外发生。
 
 推送以下格式的 tag 会创建正式 release：
 
