@@ -8,6 +8,7 @@ import (
 	"github.com/kael777/agentforge/backend/api/internal/config"
 	"github.com/kael777/agentforge/backend/api/internal/modules/auth"
 	"github.com/kael777/agentforge/backend/api/internal/modules/health"
+	"github.com/kael777/agentforge/backend/api/internal/modules/realtime"
 	"github.com/kael777/agentforge/backend/api/internal/modules/todo"
 	"github.com/kael777/agentforge/backend/api/internal/platform/database"
 	"github.com/kael777/agentforge/backend/api/internal/platform/metrics"
@@ -49,6 +50,16 @@ func New(cfg config.Config, logger *slog.Logger, db *database.Connection) (*Appl
 		return nil, err
 	}
 	todoHandler := todo.NewHandler(todoService, logger)
+	wsTicketService, err := realtime.NewService(realtime.Config{
+		Secret:   cfg.Realtime.TicketSecret,
+		Issuer:   cfg.Realtime.Issuer,
+		Audience: cfg.Realtime.Audience,
+		TTL:      cfg.Realtime.TTL,
+	})
+	if err != nil {
+		return nil, err
+	}
+	wsTicketHandler := realtime.NewHandler(wsTicketService, logger)
 	healthHandler := health.NewHandler(db.SQL, health.BuildInfo{
 		Service:   cfg.ServiceName,
 		Version:   buildinfo.Version,
@@ -58,12 +69,13 @@ func New(cfg config.Config, logger *slog.Logger, db *database.Connection) (*Appl
 	})
 
 	deps := server.Dependencies{
-		Config:  cfg,
-		Logger:  logger,
-		Health:  healthHandler,
-		Auth:    authHandler,
-		Todo:    todoHandler,
-		Metrics: metrics.New(db.SQL),
+		Config:   cfg,
+		Logger:   logger,
+		Health:   healthHandler,
+		Auth:     authHandler,
+		Todo:     todoHandler,
+		Realtime: wsTicketHandler,
+		Metrics:  metrics.New(db.SQL),
 		JWTMiddleware: auth.NewJWTMiddleware(auth.MiddlewareConfig{
 			Secret:   cfg.Auth.JWTSecret,
 			Issuer:   cfg.Auth.Issuer,

@@ -15,13 +15,25 @@ import (
 // Config holds every runtime setting the process needs. Loading fails fast:
 // a configuration that cannot be proven safe never reaches a listener.
 type Config struct {
-	AppEnv          string
-	ServiceName     string
-	HTTP            HTTPConfig
-	Database        DatabaseConfig
-	Auth            AuthConfig
+	AppEnv      string
+	ServiceName string
+	HTTP        HTTPConfig
+	Database    DatabaseConfig
+	Auth        AuthConfig
+	// Realtime holds the signing material for WebSocket tickets. The ticket
+	// secret must differ from the access token secret, so one leak cannot be
+	// replayed against the other surface.
+	Realtime        RealtimeConfig
 	LogLevel        string
 	ShutdownTimeout time.Duration
+}
+
+// RealtimeConfig configures ticket issuance for the WebSocket service.
+type RealtimeConfig struct {
+	TicketSecret string
+	Issuer       string
+	Audience     string
+	TTL          time.Duration
 }
 
 type HTTPConfig struct {
@@ -131,6 +143,17 @@ func Load() (Config, error) {
 	if cfg.Auth.TokenTTL, err = durationEnv("JWT_TTL", 24*time.Hour); err != nil {
 		return Config{}, err
 	}
+
+	cfg.Realtime.TicketSecret = strings.TrimSpace(os.Getenv("WS_TICKET_SECRET"))
+	if len(cfg.Realtime.TicketSecret) < 32 {
+		return Config{}, errors.New("WS_TICKET_SECRET must be at least 32 characters and match the realtime service")
+	}
+	cfg.Realtime.Issuer = envOrDefault("WS_TICKET_ISSUER", "agentforge-api")
+	cfg.Realtime.Audience = envOrDefault("WS_TICKET_AUDIENCE", "agentforge-ws")
+	if cfg.Realtime.TTL, err = durationEnv("WS_TICKET_TTL", 30*time.Second); err != nil {
+		return Config{}, err
+	}
+
 	if cfg.ShutdownTimeout, err = durationEnv("SHUTDOWN_TIMEOUT", 10*time.Second); err != nil {
 		return Config{}, err
 	}
@@ -151,6 +174,12 @@ func validate(cfg Config) error {
 	if cfg.HTTP.ManagementAddress == cfg.HTTP.Address {
 		return errors.New("MANAGEMENT_ADDR must differ from HTTP_ADDR")
 	}
+	if cfg.Realtime.TTL <= 0 || cfg.Realtime.TTL > 2*time.Minute {
+		return errors.New("WS_TICKET_TTL must be between 1s and 2m")
+	}
+	if cfg.Realtime.TicketSecret == cfg.Auth.JWTSecret {
+		return errors.New("WS_TICKET_SECRET must differ from JWT_SECRET")
+	}
 	if !isProduction(cfg.AppEnv) {
 		return nil
 	}
@@ -163,6 +192,9 @@ func validate(cfg Config) error {
 	for _, placeholder := range placeholderSecrets {
 		if strings.EqualFold(strings.TrimSpace(cfg.Auth.JWTSecret), placeholder) {
 			return errors.New("JWT_SECRET still holds a repository placeholder value")
+		}
+		if strings.EqualFold(strings.TrimSpace(cfg.Realtime.TicketSecret), placeholder) {
+			return errors.New("WS_TICKET_SECRET still holds a repository placeholder value")
 		}
 	}
 	return nil

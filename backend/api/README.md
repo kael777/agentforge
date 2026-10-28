@@ -116,6 +116,7 @@ Invoke-RestMethod `
 | `GET` | `/api/v1/users/me` | 是 | 当前用户 |
 | `POST` | `/api/v1/todos` | 是 | 创建 Todo |
 | `GET` | `/api/v1/todos/:id` | 是 | 查询当前用户的 Todo |
+| `POST` | `/api/v1/ws/ticket` | 是 | 换取 WebSocket 一次性 ticket（30s 有效） |
 
 **管理端口 `127.0.0.1:55556`**
 

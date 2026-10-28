@@ -10,6 +10,7 @@ import (
 	"github.com/kael777/agentforge/backend/api/internal/config"
 	"github.com/kael777/agentforge/backend/api/internal/modules/auth"
 	"github.com/kael777/agentforge/backend/api/internal/modules/health"
+	"github.com/kael777/agentforge/backend/api/internal/modules/realtime"
 	"github.com/kael777/agentforge/backend/api/internal/modules/todo"
 	"github.com/kael777/agentforge/backend/api/internal/platform/metrics"
 
@@ -23,12 +24,13 @@ func discardLogger() *slog.Logger {
 func testDependencies() Dependencies {
 	logger := discardLogger()
 	return Dependencies{
-		Config:  config.Config{},
-		Logger:  logger,
-		Health:  health.NewHandler(nil, health.BuildInfo{}),
-		Auth:    auth.NewHandler(nil, logger),
-		Todo:    todo.NewHandler(nil, logger),
-		Metrics: metrics.New(nil),
+		Config:   config.Config{},
+		Logger:   logger,
+		Health:   health.NewHandler(nil, health.BuildInfo{}),
+		Auth:     auth.NewHandler(nil, logger),
+		Todo:     todo.NewHandler(nil, logger),
+		Realtime: realtime.NewHandler(nil, logger),
+		Metrics:  metrics.New(nil),
 		JWTMiddleware: auth.NewJWTMiddleware(auth.MiddlewareConfig{
 			Secret:   "01234567890123456789012345678901",
 			Issuer:   "agentforge-api",

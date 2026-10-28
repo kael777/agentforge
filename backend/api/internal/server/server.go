@@ -6,6 +6,7 @@ import (
 	"github.com/kael777/agentforge/backend/api/internal/config"
 	"github.com/kael777/agentforge/backend/api/internal/modules/auth"
 	"github.com/kael777/agentforge/backend/api/internal/modules/health"
+	"github.com/kael777/agentforge/backend/api/internal/modules/realtime"
 	"github.com/kael777/agentforge/backend/api/internal/modules/todo"
 	"github.com/kael777/agentforge/backend/api/internal/platform/metrics"
 	"github.com/kael777/agentforge/backend/api/internal/transport/httpx"
@@ -24,6 +25,7 @@ type Dependencies struct {
 	Health        *health.Handler
 	Auth          *auth.Handler
 	Todo          *todo.Handler
+	Realtime      *realtime.Handler
 	JWTMiddleware fiber.Handler
 	Metrics       *metrics.Metrics
 }
@@ -48,6 +50,9 @@ func NewPublic(deps Dependencies) *fiber.App {
 	api.Get("/users/me", deps.JWTMiddleware, deps.Auth.Me)
 	api.Post("/todos", deps.JWTMiddleware, deps.Todo.Create)
 	api.Get("/todos/:id", deps.JWTMiddleware, deps.Todo.Get)
+	// A ticket is the only thing that may open a WebSocket. It is scoped to one
+	// user, one audience and a few seconds.
+	api.Post("/ws/ticket", deps.JWTMiddleware, deps.Realtime.Issue)
 
 	return app
 }

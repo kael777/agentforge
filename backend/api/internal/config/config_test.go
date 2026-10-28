@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const testTicketSecret = "ticket-secret-0123456789012345678901"
+
 // setProductionEnv provides the minimum a production load needs, so each test
 // can override exactly the variable it is about.
 func setProductionEnv(t *testing.T) {
@@ -14,6 +16,7 @@ func setProductionEnv(t *testing.T) {
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("DATABASE_DSN", "user:password@tcp(localhost:3306)/test?parseTime=True")
 	t.Setenv("JWT_SECRET", "01234567890123456789012345678901")
+	t.Setenv("WS_TICKET_SECRET", testTicketSecret)
 	t.Setenv("HTTP_ALLOWED_ORIGINS", "http://localhost:5173, https://example.com")
 }
 
@@ -99,6 +102,33 @@ func TestLoadRejectsPlaceholderSecretInProduction(t *testing.T) {
 
 	if _, err := Load(); err == nil {
 		t.Fatal("expected an error for the repository placeholder secret")
+	}
+}
+
+func TestLoadRejectsSharedAccessAndTicketSecrets(t *testing.T) {
+	setProductionEnv(t)
+	t.Setenv("WS_TICKET_SECRET", "01234567890123456789012345678901")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected an error when the ticket secret equals the access token secret")
+	}
+}
+
+func TestLoadRejectsPlaceholderTicketSecret(t *testing.T) {
+	setProductionEnv(t)
+	t.Setenv("WS_TICKET_SECRET", "replace-this-with-at-least-32-characters")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected an error for a placeholder ticket secret")
+	}
+}
+
+func TestLoadRejectsLongTicketTTL(t *testing.T) {
+	setProductionEnv(t)
+	t.Setenv("WS_TICKET_TTL", "10m")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected an error for a ticket TTL above two minutes")
 	}
 }
 
