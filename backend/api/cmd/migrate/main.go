@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/config"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/platform/database"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/platform/logging"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/platform/migrate"
+	"github.com/kael777/agentforge/backend/api/internal/config"
+	"github.com/kael777/agentforge/backend/api/internal/platform/database"
+	"github.com/kael777/agentforge/backend/api/internal/platform/logging"
+	"github.com/kael777/agentforge/backend/api/internal/platform/migrate"
 )
 
 func main() {

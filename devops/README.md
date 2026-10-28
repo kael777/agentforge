@@ -47,7 +47,7 @@ bash devops/scripts/build_mac.sh
 建议采用不可变版本目录和 `current` 软链接：
 
 ```text
-/srv/gofiber-gorm-next/
+/srv/agentforge/
 ├── releases/20261012-001/
 │   ├── api
 │   ├── migrate
@@ -58,17 +58,17 @@ bash devops/scripts/build_mac.sh
 首次部署时创建低权限用户，复制生产环境配置和 unit：
 
 ```bash
-sudo useradd --system --home /srv/gofiber-gorm-next --shell /usr/sbin/nologin gofiber
-sudo mkdir -p /etc/gofiber-gorm-next
-sudo cp devops/env/gofiber-gorm-next.env.example /etc/gofiber-gorm-next/gofiber-gorm-next.env
-sudo chmod 0600 /etc/gofiber-gorm-next/gofiber-gorm-next.env
-sudoedit /etc/gofiber-gorm-next/gofiber-gorm-next.env
+sudo useradd --system --home /srv/agentforge --shell /usr/sbin/nologin agentforge
+sudo mkdir -p /etc/agentforge
+sudo cp devops/env/api.env.example /etc/agentforge/api.env
+sudo chmod 0600 /etc/agentforge/api.env
+sudoedit /etc/agentforge/api.env
 
-sudo cp devops/systemd/gofiber-gorm-next.service /etc/systemd/system/
+sudo cp devops/systemd/agentforge-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now gofiber-gorm-next
-sudo systemctl status gofiber-gorm-next
-sudo journalctl -u gofiber-gorm-next -f
+sudo systemctl enable --now agentforge-api
+sudo systemctl status agentforge-api
+sudo journalctl -u agentforge-api -f
 ```
 
 unit 在启动 API 前运行幂等 migration。生产环境配置使用 `HTTP_ADDR=127.0.0.1:55555`，避免绕过 Nginx 直接访问后端。
@@ -76,23 +76,23 @@ unit 在启动 API 前运行幂等 migration。生产环境配置使用 `HTTP_AD
 发布时上传一个完整 release，切换软链接后重启：
 
 ```bash
-sudo ln -sfn /srv/gofiber-gorm-next/releases/20261012-002 /srv/gofiber-gorm-next/current
-sudo systemctl restart gofiber-gorm-next
+sudo ln -sfn /srv/agentforge/releases/20261012-002 /srv/agentforge/current
+sudo systemctl restart agentforge-api
 ```
 
 健康检查失败时把 `current` 指回上一版本再重启，即可同时回滚二进制和网站。数据库 migration 必须向后兼容，因为代码回滚不会自动回滚数据库结构。
 
 ## Nginx
 
-`nginx/gofiber-gorm-next.conf` 默认用于 React 与 API 同域：
+`nginx/agentforge.conf` 默认用于 React 与 API 同域：
 
 - `/api/*`、`/healthz`、`/readyz` 代理到 `127.0.0.1:55555`。
 - 其他路径读取 React `web/dist`。
 - 未匹配到静态文件时回退到 `index.html`，支持前端路由刷新。
 
 ```bash
-sudo cp devops/nginx/gofiber-gorm-next.conf /etc/nginx/sites-available/gofiber-gorm-next
-sudo ln -s /etc/nginx/sites-available/gofiber-gorm-next /etc/nginx/sites-enabled/gofiber-gorm-next
+sudo cp devops/nginx/agentforge.conf /etc/nginx/sites-available/agentforge
+sudo ln -s /etc/nginx/sites-available/agentforge /etc/nginx/sites-enabled/agentforge
 sudo nginx -t
 sudo systemctl reload nginx
 ```

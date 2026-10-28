@@ -1,16 +1,16 @@
 [Unit]
-Description=gofiber-gorm-next API
+Description=AgentForge API
 Wants=network-online.target
 After=network-online.target
 
 [Service]
 Type=simple
-User=gofiber
-Group=gofiber
-WorkingDirectory=/srv/gofiber-gorm-next/current
-EnvironmentFile=/etc/gofiber-gorm-next/gofiber-gorm-next.env
-ExecStartPre=/srv/gofiber-gorm-next/current/migrate
-ExecStart=/srv/gofiber-gorm-next/current/api
+User=agentforge
+Group=agentforge
+WorkingDirectory=/srv/agentforge/current
+EnvironmentFile=/etc/agentforge/api.env
+ExecStartPre=/srv/agentforge/current/migrate
+ExecStart=/srv/agentforge/current/api
 Restart=on-failure
 RestartSec=3s
 TimeoutStopSec=20s

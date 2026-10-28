@@ -1,4 +1,4 @@
-# gofiber-gorm-next backend
+# AgentForge API 后端
 
 AgentForge 的独立后端工程，使用 Go、Fiber v3、GORM 和 MySQL，默认监听 `55555`。Docker、Nginx、systemd 和发布脚本位于仓库根目录的 `devops`，前端位于 `frontend/web`。
 

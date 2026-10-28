@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-BACKEND_DIR="${ROOT_DIR}/backend/gofiber-gorm-next"
+BACKEND_DIR="${ROOT_DIR}/backend/api"
 FRONTEND_DIR="${ROOT_DIR}/frontend/web"
 COMPOSE_FILE="${ROOT_DIR}/devops/docker/docker-compose.yml"
 

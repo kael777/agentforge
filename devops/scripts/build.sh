@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEMO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-BACKEND_DIR="${DEMO_ROOT}/backend/gofiber-gorm-next"
+BACKEND_DIR="${DEMO_ROOT}/backend/api"
 OUTPUT_ROOT="${DEMO_ROOT}/dist"
 cd "$BACKEND_DIR"
 
@@ -26,7 +26,7 @@ build_target() {
   echo "Building ${goos}/${goarch}..."
 
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath \
-    -ldflags "-s -w -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.Version=${version} -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.Commit=${commit} -X github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo.BuildTime=${build_time}" \
+    -ldflags "-s -w -X github.com/kael777/agentforge/backend/api/internal/buildinfo.Version=${version} -X github.com/kael777/agentforge/backend/api/internal/buildinfo.Commit=${commit} -X github.com/kael777/agentforge/backend/api/internal/buildinfo.BuildTime=${build_time}" \
     -o "${output_dir}/api${extension}" ./cmd/api
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath \
     -ldflags "-s -w" \

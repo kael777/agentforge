@@ -4,11 +4,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/config"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/modules/auth"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/modules/health"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/modules/todo"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/transport/httpx"
+	"github.com/kael777/agentforge/backend/api/internal/config"
+	"github.com/kael777/agentforge/backend/api/internal/modules/auth"
+	"github.com/kael777/agentforge/backend/api/internal/modules/health"
+	"github.com/kael777/agentforge/backend/api/internal/modules/todo"
+	"github.com/kael777/agentforge/backend/api/internal/transport/httpx"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"

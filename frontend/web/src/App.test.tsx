@@ -15,7 +15,7 @@ describe('App', () => {
         new Response(
           JSON.stringify({
             status: 'ok',
-            service: 'gofiber-gorm-next',
+            service: 'agentforge-api',
             version: 'dev',
             env: 'local',
           }),

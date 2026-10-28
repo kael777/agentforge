@@ -16,7 +16,7 @@
 先启动后端：
 
 ```powershell
-cd backend/gofiber-gorm-next
+cd backend/api
 go run ./cmd/api
 ```
 

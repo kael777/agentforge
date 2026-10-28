@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/config"
+	"github.com/kael777/agentforge/backend/api/internal/config"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

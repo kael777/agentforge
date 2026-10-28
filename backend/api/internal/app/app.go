@@ -4,13 +4,13 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/buildinfo"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/config"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/modules/auth"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/modules/health"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/modules/todo"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/platform/database"
-	"github.com/kael777/agentforge/backend/gofiber-gorm-next/internal/server"
+	"github.com/kael777/agentforge/backend/api/internal/buildinfo"
+	"github.com/kael777/agentforge/backend/api/internal/config"
+	"github.com/kael777/agentforge/backend/api/internal/modules/auth"
+	"github.com/kael777/agentforge/backend/api/internal/modules/health"
+	"github.com/kael777/agentforge/backend/api/internal/modules/todo"
+	"github.com/kael777/agentforge/backend/api/internal/platform/database"
+	"github.com/kael777/agentforge/backend/api/internal/server"
 
 	"github.com/gofiber/fiber/v3"
 )

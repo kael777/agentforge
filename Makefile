@@ -1,6 +1,6 @@
 SHELL := bash
 
-BACKEND_DIR := backend/gofiber-gorm-next
+BACKEND_DIR := backend/api
 FRONTEND_DIR := frontend/web
 COMPOSE_FILE := devops/docker/docker-compose.yml
 COMPOSE_PROJECT := agentforge

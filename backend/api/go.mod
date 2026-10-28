@@ -1,4 +1,4 @@
-module github.com/kael777/agentforge/backend/gofiber-gorm-next
+module github.com/kael777/agentforge/backend/api
 
 go 1.26.0
 

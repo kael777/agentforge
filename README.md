@@ -11,7 +11,7 @@ AgentForge 是用于学习和展示 Agent 全栈工程能力的独立项目。�
 agentforge/
 ├── .github/workflows/       CI 与完整 Release
 ├── backend/
-│   └── gofiber-gorm-next/   Go + Fiber + GORM + MySQL 后端
+│   └── api/                 Go + Fiber + GORM + MySQL 后端
 ├── frontend/
 │   └── web/                 通用 React + Vite 前端
 ├── devops/
@@ -27,7 +27,7 @@ agentforge/
 
 ## 环境要求
 
-- Go 1.27+
+- Go 1.26+
 - Node.js 24+
 - Docker 与 Docker Compose
 - Windows 使用 PowerShell；Linux/macOS/CI 可使用 Make 和 Bash
@@ -38,7 +38,7 @@ Windows：
 
 ```powershell
 cd path\to\agentforge
-Copy-Item backend\gofiber-gorm-next\.env.example backend\gofiber-gorm-next\.env
+Copy-Item backend\api\.env.example backend\api\.env
 Copy-Item frontend\web\.env.example frontend\web\.env
 Push-Location frontend\web
 npm ci
@@ -121,4 +121,4 @@ CI 会将 Go 二进制、React `dist` 和部署配置组成同一个不可变制
 - [x] Phase 0 架构决策记录
 - [ ] Phase 1 最小命令行 Agent Demo
 
-后端接口说明见 `backend/gofiber-gorm-next/README.md`，前端说明见 `frontend/web/README.md`，部署说明见 `devops/README.md`。
+后端接口说明见 `backend/api/README.md`，前端说明见 `frontend/web/README.md`，部署说明见 `devops/README.md`。

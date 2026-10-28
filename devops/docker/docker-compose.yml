@@ -19,12 +19,12 @@ services:
 
   migrate:
     build:
-      context: ../../backend/gofiber-gorm-next
-      dockerfile: ../../devops/docker/backend.Dockerfile
+      context: ../../backend/api
+      dockerfile: ../../devops/docker/api.Dockerfile
     entrypoint: ["/app/migrate"]
     environment: &app-env
       APP_ENV: development
-      SERVICE_NAME: gofiber-gorm-next
+      SERVICE_NAME: agentforge-api
       HTTP_ADDR: :55555
       HTTP_ALLOWED_ORIGINS: http://localhost:5173
       DATABASE_DSN: "agentforge:agentforge@tcp(mysql:3306)/agentforge?charset=utf8mb4&parseTime=True&loc=UTC"
@@ -42,8 +42,8 @@ services:
 
   api:
     build:
-      context: ../../backend/gofiber-gorm-next
-      dockerfile: ../../devops/docker/backend.Dockerfile
+      context: ../../backend/api
+      dockerfile: ../../devops/docker/api.Dockerfile
     environment: *app-env
     depends_on:
       migrate:

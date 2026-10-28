@@ -50,7 +50,7 @@ func Load() (Config, error) {
 	}
 
 	cfg.AppEnv = envOrDefault("APP_ENV", "development")
-	cfg.ServiceName = envOrDefault("SERVICE_NAME", "gofiber-gorm-next")
+	cfg.ServiceName = envOrDefault("SERVICE_NAME", "agentforge-api")
 	cfg.LogLevel = envOrDefault("LOG_LEVEL", "info")
 	cfg.HTTP.Address = envOrDefault("HTTP_ADDR", ":55555")
 	cfg.HTTP.AllowedOrigins = splitCSV(envOrDefault("HTTP_ALLOWED_ORIGINS", "http://localhost:5173"))

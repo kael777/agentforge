@@ -3,7 +3,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
-$backendDir = Join-Path $projectRoot 'backend\gofiber-gorm-next'
+$backendDir = Join-Path $projectRoot 'backend\api'
 $frontendDir = Join-Path $projectRoot 'frontend\web'
 $composeFile = Join-Path $projectRoot 'devops\docker\docker-compose.yml'
 
