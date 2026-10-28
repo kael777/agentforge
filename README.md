@@ -84,6 +84,9 @@ go run ./cmd/ws
 .\devops\scripts\ws-smoke.ps1
 ```
 
+图形界面调试：启动前端后打开 <http://localhost:5173/realtime-console.html>。
+页面会自己完成登录取票、连接、订阅、发布和心跳。
+
 停止应用进程后，使用以下命令停止 MySQL：
 
 ```powershell

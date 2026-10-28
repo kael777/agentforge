@@ -120,6 +120,11 @@ python devops\scripts\ws-demo.py       # Python 3.10+，pip install "websockets>
 心跳。Python 版本还会演示非法 topic 的错误帧和票据重放被拒绝。
 全部通过时输出 `RESULT: PASS`。
 
+图形界面调试：浏览器打开 <http://localhost:5173/realtime-console.html>。
+这个页面由 Vite 提供，天然处在白名单 Origin 上，并且会自动完成取票和连接。
+在线第三方 WebSocket 工具通常连不上：它们的 Origin 不在白名单，浏览器对失败的
+握手也只报 `1006`，看不到真实的 401/403。
+
 ## 测试
 
 ```powershell

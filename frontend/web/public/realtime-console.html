@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AgentForge WebSocket 调试台</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px;
+      font: 14px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+      background: #f5f6f8; color: #1f2328;
+    }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p.hint { margin: 0 0 20px; color: #59636e; font-size: 13px; }
+    .layout { display: grid; gap: 16px; grid-template-columns: 380px 1fr; align-items: start; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    .card { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 16px; }
+    .card h2 { font-size: 13px; margin: 0 0 12px; color: #59636e; text-transform: uppercase; letter-spacing: .04em; }
+    label { display: block; font-size: 12px; color: #59636e; margin: 10px 0 4px; }
+    input, textarea {
+      width: 100%; padding: 7px 9px; border: 1px solid #d8dee4; border-radius: 6px;
+      font: inherit; font-size: 13px; background: #fff;
+    }
+    textarea { min-height: 72px; resize: vertical; font-family: ui-monospace, Consolas, monospace; }
+    .row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    button {
+      padding: 7px 14px; border: 1px solid #d8dee4; border-radius: 6px;
+      background: #fff; font: inherit; font-size: 13px; cursor: pointer;
+    }
+    button:hover:not(:disabled) { border-color: #9aa4af; }
+    button.primary { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+    button.primary:hover:not(:disabled) { background: #1a5fd0; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    #status { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #eef1f4; }
+    #status.open { background: #dafbe1; color: #1a7f37; }
+    #status.closed { background: #ffebe9; color: #b42318; }
+    #log {
+      height: 460px; overflow: auto; background: #0d1117; color: #c9d1d9;
+      border-radius: 8px; padding: 12px; font: 12px/1.65 ui-monospace, Consolas, monospace;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    #log .ts { color: #6e7681; }
+    #log .rx { color: #7ee787; }
+    #log .tx { color: #79c0ff; }
+    #log .err { color: #ff7b72; }
+    #log .sys { color: #d2a8ff; }
+  </style>
+</head>
+<body>
+  <h1>AgentForge WebSocket 调试台</h1>
+  <p class="hint">
+    页面必须通过 Vite 开发服务器打开（<code>http://localhost:5173/realtime-console.html</code>），
+    这样 Origin 才在服务端白名单里。票据一次只能连一次，重连要重新取。
+  </p>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <h2>1. 身份</h2>
+        <label for="email">邮箱</label>
+        <input id="email" value="ws-console@example.com" />
+        <label for="password">密码</label>
+        <input id="password" value="password123" />
+        <div class="row">
+          <button id="btn-token">登录取 token</button>
+          <button id="btn-ticket" disabled>换取 ticket</button>
+        </div>
+        <label for="url">连接地址（自动带 ticket）</label>
+        <input id="url" value="ws://localhost:5173/ws" />
+        <div class="row">
+          <button id="btn-connect" class="primary" disabled>连接</button>
+          <button id="btn-disconnect" disabled>断开</button>
+          <span id="status">未连接</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>2. 收发</h2>
+        <label for="topic">topic</label>
+        <input id="topic" value="demo" />
+        <div class="row">
+          <button id="btn-sub" disabled>订阅</button>
+          <button id="btn-unsub" disabled>退订</button>
+          <button id="btn-ping" disabled>ping</button>
+        </div>
+        <label for="payload">发布内容（JSON）</label>
+        <textarea id="payload">{"hello":"world"}</textarea>
+        <div class="row">
+          <button id="btn-publish" class="primary" disabled>发布到 topic</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="display:flex;justify-content:space-between;align-items:center">
+        <span>3. 消息记录</span>
+        <button id="btn-clear">清空</button>
+      </h2>
+      <div id="log"></div>
+    </div>
+  </div>
+
+<script>
+  // 这个页面通过 Vite 访问，所以：
+  //   /api/*  -> 55555（Fiber API）
+  //   /ws     -> 8090（WebSocket 服务，Vite 会保留 Origin 头）
+  const API = location.origin;
+  const el = (id) => document.getElementById(id);
+  const logBox = el('log');
+
+  let token = null;
+  let socket = null;
+
+  function log(kind, text) {
+    const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    const line = document.createElement('div');
+    line.innerHTML = `<span class="ts">[${time}]</span> <span class="${kind}">${escapeHtml(text)}</span>`;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[c]);
+  }
+
+  function setStatus(text, state) {
+    const badge = el('status');
+    badge.textContent = text;
+    badge.className = state || '';
+  }
+
+  function setConnected(connected) {
+    for (const id of ['btn-sub', 'btn-unsub', 'btn-ping', 'btn-publish', 'btn-disconnect']) {
+      el(id).disabled = !connected;
+    }
+    el('btn-connect').disabled = connected || !el('btn-ticket').dataset.ready;
+  }
+
+  async function postJson(path, body, auth) {
+    const response = await fetch(API + path, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' },
+        auth ? { Authorization: 'Bearer ' + auth } : {}),
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await response.text();
+    if (!response.ok) throw new Error(`${response.status} ${text}`);
+    return text ? JSON.parse(text) : {};
+  }
+
+  el('btn-token').onclick = async () => {
+    const credentials = { email: el('email').value, password: el('password').value };
+    try {
+      try {
+        await postJson('/api/v1/auth/register', credentials);
+        log('sys', '注册成功');
+      } catch (error) {
+        log('sys', '注册跳过：' + error.message);
+      }
+      const auth = await postJson('/api/v1/auth/login', credentials);
+      token = auth.token;
+      log('sys', `已获取 access token（${token.length} 字符）`);
+      el('btn-ticket').disabled = false;
+    } catch (error) {
+      log('err', '登录失败：' + error.message);
+    }
+  };
+
+  el('btn-ticket').onclick = async () => {
+    try {
+      const ticket = await postJson('/api/v1/ws/ticket', undefined, token);
+      el('btn-ticket').dataset.ticket = ticket.ticket;
+      el('btn-ticket').dataset.ready = '1';
+      el('btn-connect').disabled = false;
+      log('sys', `已换取 ticket，${ticket.expires_in} 秒内有效，只能使用一次`);
+    } catch (error) {
+      log('err', '换取 ticket 失败：' + error.message);
+    }
+  };
+
+  el('btn-connect').onclick = () => {
+    const ticket = el('btn-ticket').dataset.ticket;
+    if (!ticket) { log('err', '请先换取 ticket'); return; }
+    // ticket 只在握手时用一次，连上之后把它从按钮上清掉，避免误重连。
+    delete el('btn-ticket').dataset.ticket;
+    delete el('btn-ticket').dataset.ready;
+    el('btn-ticket').disabled = false;
+
+    const url = `${el('url').value}?ticket=${encodeURIComponent(ticket)}`;
+    log('sys', '连接中：' + el('url').value);
+    socket = new WebSocket(url);
+
+    socket.onopen = () => {
+      setStatus('已连接', 'open');
+      setConnected(true);
+      log('sys', '连接成功');
+    };
+    socket.onmessage = (event) => log('rx', '<- ' + event.data);
+    socket.onerror = () => log('err', '连接出错：浏览器不暴露原因，通常是 401/403/404');
+    socket.onclose = (event) => {
+      setStatus('已关闭', 'closed');
+      setConnected(false);
+      log(event.wasClean ? 'sys' : 'err', `连接关闭 code=${event.code} reason=${event.reason || '-'}`);
+      log('sys', event.code === 1006 ? '1006 表示握手被拒：检查 ticket 是否过期/已用过、Origin 是否在白名单' : '');
+    };
+  };
+
+  el('btn-disconnect').onclick = () => socket && socket.close(1000, 'client done');
+  el('btn-clear').onclick = () => { logBox.innerHTML = ''; };
+
+  function send(frame) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) { log('err', '尚未连接'); return; }
+    const text = JSON.stringify(frame);
+    socket.send(text);
+    log('tx', '-> ' + text);
+  }
+
+  const topic = () => el('topic').value;
+  el('btn-sub').onclick = () => send({ type: 'subscribe', topic: topic() });
+  el('btn-unsub').onclick = () => send({ type: 'unsubscribe', topic: topic() });
+  el('btn-ping').onclick = () => send({ type: 'ping' });
+  el('btn-publish').onclick = () => {
+    let data;
+    try {
+      data = JSON.parse(el('payload').value);
+    } catch (error) {
+      log('err', '发布内容不是合法 JSON：' + error.message);
+      return;
+    }
+    send({ type: 'publish', topic: topic(), data });
+  };
+
+  log('sys', '页面已就绪，API 前缀 = ' + API);
+</script>
+</body>
+</html>
