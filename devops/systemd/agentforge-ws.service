@@ -1,0 +1,48 @@
+[Unit]
+Description=AgentForge Realtime (WebSocket)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=agentforge
+Group=agentforge
+WorkingDirectory=/srv/agentforge/current
+EnvironmentFile=/etc/agentforge/ws.env
+ExecStart=/srv/agentforge/current/ws
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=60s
+# Must exceed the library's five second close handshake, otherwise live
+# connections are cut without a close frame.
+TimeoutStopSec=25s
+KillSignal=SIGTERM
+
+# Filesystem and privilege confinement. The service never needs root, never
+# writes to the filesystem, and never loads modules.
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=multi-user.target

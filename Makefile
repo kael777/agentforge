@@ -1,16 +1,18 @@
 SHELL := bash
 
 BACKEND_DIR := backend/api
+REALTIME_DIR := backend/ws
 FRONTEND_DIR := frontend/web
 COMPOSE_FILE := devops/docker/docker-compose.yml
 COMPOSE_PROJECT := agentforge
 
-.PHONY: help bootstrap dev dev-infra dev-backend dev-frontend down test lint build check release-check publish
+.PHONY: help bootstrap dev dev-infra dev-backend dev-realtime dev-frontend down test lint build check release-check publish
 
 help:
 	@echo "AgentForge development commands"
 	@echo "  make bootstrap             Install Go and npm dependencies"
 	@echo "  make dev                   Start MySQL, migrations, Go API and React"
+	@echo "  make dev-realtime          Start the WebSocket realtime service"
 	@echo "  make test                  Run backend and frontend tests"
 	@echo "  make lint                  Run go vet and frontend lint"
 	@echo "  make build                 Build backend targets and React dist"
@@ -20,6 +22,7 @@ help:
 
 bootstrap:
 	cd $(BACKEND_DIR) && go mod download
+	cd $(REALTIME_DIR) && go mod download
 	cd $(FRONTEND_DIR) && npm ci
 
 dev:
@@ -30,6 +33,9 @@ dev-infra:
 
 dev-backend:
 	cd $(BACKEND_DIR) && go run ./cmd/api
+
+dev-realtime:
+	cd $(REALTIME_DIR) && go run ./cmd/ws
 
 dev-frontend:
 	cd $(FRONTEND_DIR) && npm run dev
@@ -42,6 +48,7 @@ test:
 
 lint:
 	cd $(BACKEND_DIR) && go vet ./...
+	cd $(REALTIME_DIR) && go vet ./...
 	cd $(FRONTEND_DIR) && npm run lint
 
 build:

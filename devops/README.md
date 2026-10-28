@@ -75,6 +75,20 @@ unit 在启动 API 前运行幂等 migration。生产环境配置使用 `HTTP_AD
 
 服务同时监听一个管理端口 `MANAGEMENT_ADDR=127.0.0.1:55556`，只提供 `/readyz`、`/version` 和 `/metrics`。该端口只绑定回环地址，部署时不要把 `55556` 写进安全组、Docker `ports` 或 Nginx `proxy_pass`。
 
+实时服务使用独立的 unit 和配置文件：
+
+```bash
+sudo cp devops/env/ws.env.example /etc/agentforge/ws.env
+sudo chmod 0600 /etc/agentforge/ws.env
+sudo cp devops/systemd/agentforge-ws.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now agentforge-ws
+```
+
+它监听 `127.0.0.1:8090`（由 Nginx 暴露）和 `127.0.0.1:8091`（管理端口）。
+`TimeoutStopSec=25s` 是有意留的余量：WebSocket 关闭握手最长约 5 秒，预算不足会在
+退出时切断在线连接而不给关闭码。
+
 发布时上传一个完整 release，切换软链接后重启：
 
 ```bash
@@ -89,7 +103,10 @@ sudo systemctl restart agentforge-api
 `nginx/agentforge.conf` 默认用于 React 与 API 同域：
 
 - `/api/*`、`/healthz` 代理到 `127.0.0.1:55555`。
-- `/readyz`、`/version`、`/metrics` 不经过 Nginx，只在管理端口 `127.0.0.1:55556` 上可达。
+- `/ws` 代理到实时服务 `127.0.0.1:8090`，单独使用不带 query 的访问日志格式，
+  因为 ticket 在 query 里。
+- `/readyz`、`/version`、`/metrics` 不经过 Nginx，只在管理端口 `127.0.0.1:55556`
+  （API）和 `127.0.0.1:8091`（实时服务）上可达。
 - 其他路径读取 React `web/dist`。
 - 未匹配到静态文件时回退到 `index.html`，支持前端路由刷新。
 

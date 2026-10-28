@@ -11,7 +11,8 @@ AgentForge 是用于学习和展示 Agent 全栈工程能力的独立项目。�
 agentforge/
 ├── .github/workflows/       CI 与完整 Release
 ├── backend/
-│   └── api/                 Go + Fiber + GORM + MySQL 后端
+│   ├── api/                 Go + Fiber + GORM + MySQL 后端
+│   └── ws/                  Go + net/http WebSocket 实时服务
 ├── frontend/
 │   └── web/                 通用 React + Vite 前端
 ├── devops/
@@ -70,6 +71,19 @@ make dev
 - Go API：`http://localhost:55555`
 - React Web：`http://localhost:5173`
 
+实时服务需要单独启动（独立 module）：
+
+```powershell
+cd backend\ws
+go run ./cmd/ws
+```
+
+端到端自检（API 与实时服务都在运行时）：
+
+```powershell
+.\devops\scripts\ws-smoke.ps1
+```
+
 停止应用进程后，使用以下命令停止 MySQL：
 
 ```powershell
@@ -116,6 +130,7 @@ CI 会将 Go 二进制、React `dist` 和部署配置组成同一个不可变制
 
 - [x] Go/Fiber/GORM/MySQL 后端基线
 - [x] 安全基线：公网/管理端口拆分、响应头与日志脱敏、登录限流、token 校验、生产配置校验
+- [x] WebSocket 实时服务：一次性 ticket 鉴权、Origin 白名单、连接与速率限制、优雅关闭
 - [x] React/Vite 通用前端脚手架
 - [x] Docker、systemd、Nginx 和跨平台构建
 - [x] 全栈 CI、Tag Release 和统一命令入口

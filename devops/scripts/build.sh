@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEMO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 BACKEND_DIR="${DEMO_ROOT}/backend/api"
+WS_DIR="${DEMO_ROOT}/backend/ws"
 OUTPUT_ROOT="${DEMO_ROOT}/dist"
 cd "$BACKEND_DIR"
 
@@ -31,6 +32,11 @@ build_target() {
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath \
     -ldflags "-s -w" \
     -o "${output_dir}/migrate${extension}" ./cmd/migrate
+
+  # The realtime service is a separate module and ships as its own binary.
+  (cd "$WS_DIR" && CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath \
+    -ldflags "-s -w" \
+    -o "${output_dir}/ws${extension}" ./cmd/ws)
 }
 
 case "$target" in

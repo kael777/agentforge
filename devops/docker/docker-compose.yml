@@ -39,6 +39,9 @@ services:
       JWT_ISSUER: agentforge-api
       JWT_AUDIENCE: agentforge-web
       JWT_TTL: 24h
+      WS_TICKET_SECRET: local-ws-ticket-secret-at-least-32-characters
+      WS_TICKET_ISSUER: agentforge-api
+      WS_TICKET_AUDIENCE: agentforge-ws
       LOG_LEVEL: info
       SHUTDOWN_TIMEOUT: 10s
     depends_on:
@@ -58,6 +61,32 @@ services:
       - "55555:55555"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:55555/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # The realtime service has no database dependency, so it does not wait for
+  # migration. It only needs the same ticket secret as the API.
+  ws:
+    build:
+      context: ../../backend/ws
+      dockerfile: ../../devops/docker/ws.Dockerfile
+    environment:
+      APP_ENV: development
+      SERVICE_NAME: agentforge-ws
+      WS_ADDR: :8090
+      WS_MANAGEMENT_ADDR: :8091
+      WS_MANAGEMENT_ALLOW_NON_LOOPBACK: "true"
+      WS_ALLOWED_ORIGINS: http://localhost:5173
+      WS_TICKET_SECRET: local-ws-ticket-secret-at-least-32-characters
+      WS_TICKET_ISSUER: agentforge-api
+      WS_TICKET_AUDIENCE: agentforge-ws
+      LOG_LEVEL: info
+      SHUTDOWN_TIMEOUT: 20s
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/healthz"]
       interval: 5s
       timeout: 3s
       retries: 10

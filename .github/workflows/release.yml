@@ -34,6 +34,9 @@ jobs:
       - name: Verify backend
         working-directory: backend/api
         run: go test ./... && go vet ./...
+      - name: Verify realtime
+        working-directory: backend/ws
+        run: go test ./... && go vet ./...
       - name: Install frontend dependencies
         working-directory: frontend/web
         run: npm ci

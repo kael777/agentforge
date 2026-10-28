@@ -14,6 +14,12 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:55555',
       '/healthz': 'http://127.0.0.1:55555',
+      // The browser must connect from the dev-server origin so the realtime
+      // service sees an Origin it can allowlist. ws: true keeps the upgrade.
+      '/ws': {
+        target: 'ws://127.0.0.1:8090',
+        ws: true,
+      },
     },
   },
 })
