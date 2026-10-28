@@ -151,4 +151,4 @@ CI 会将 Go 二进制、React `dist` 和部署配置组成同一个不可变制
 - 关闭握手最长约 5 秒（`coder/websocket` 行为），因此排空预算不得小于该值。
 - `.github/workflows/ci.yml` 使用 `go test -race`，但 Windows 开发机缺少 gcc，未能本地验证。
 
-说明文档：后端接口见 `backend/api/README.md`，实时服务协议见 `backend/ws/README.md`，前端见 `frontend/web/README.md`，部署见 `devops/README.md`。
+说明文档：后端接口见 `backend/api/README.md`，实时服务协议见 `backend/ws/README.md`，前端见 `frontend/web/README.md`，部署见 `devops/README.md`；安全边界与「每条控制对应哪个测试」见 [docs/security/THREAT-MODEL.md](docs/security/THREAT-MODEL.md)。

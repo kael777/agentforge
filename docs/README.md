@@ -6,5 +6,20 @@
 
 ## 文档索引
 
-- [工程化学习笔记](./工程化学习笔记.md)：记录 `.gitattributes`、密钥扫描、Go module 等实践中遇到的知识点和排查经验。
+**安全**
+
+- [威胁模型](./security/THREAT-MODEL.md)：保护什么、防谁、每条控制对应哪个测试、哪些风险是知情接受的。
+  改动任何对外入口前先读这份。
+
+**架构决策**
+
 - [ADR-0001：独立仓库与平台基线](./adr/0001-repository-and-platform-baseline.md)
+- [ADR-0002：HTTP 与 WebSocket 拆分，以及一次性票据鉴权](./adr/0002-http-ws-split-and-ticket-auth.md)
+
+**笔记**
+
+- [工程化学习笔记](./工程化学习笔记.md)：记录 `.gitattributes`、密钥扫描、Go module 等实践中遇到的知识点和排查经验。
+
+## 本地文件
+
+`docs/plans/` 被 `.gitignore` 排除，只在本地维护（服务器拓扑、安全组、备份与排障方案），不随仓库上传。
