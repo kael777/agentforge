@@ -1,0 +1,30 @@
+# Gitleaks 配置：继承默认规则，只对“构造出来的假密钥”放行。
+
+[extend]
+useDefault = true
+
+# 放行策略刻意用「精确正则」而不是「整类文件」：
+# 如果整个 *_test.go 都放行，将来有人把真实密钥贴进测试就再也拦不住了。
+
+[[allowlists]]
+description = "测试里构造的固定值，不对应任何真实环境"
+regexes = [
+  '''ticket-secret-0123456789012345678901''',
+  '''01234567890123456789012345678901''',
+]
+
+[[allowlists]]
+description = "文档与示例中声明的占位值，启动期会被生产校验拒绝"
+regexes = [
+  '''replace-this-with-at-least-32-characters''',
+  '''replace-this-with-a-random-secret-of-at-least-32-characters''',
+  '''local-development-secret-at-least-32-characters''',
+  '''local-ws-ticket-secret-at-least-32-characters''',
+  '''dev-ws-ticket-secret-0123456789ab''',
+]
+
+[[allowlists]]
+description = "环境变量示例文件，按定义不含真实凭据"
+paths = [
+  '''.*\.env\.example$''',
+]
