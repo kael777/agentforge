@@ -48,8 +48,7 @@ export function HomePage() {
           />
           {health.isPending && '正在连接 Go 后端…'}
           {health.isError && '暂未连接后端，请先启动 55555 端口的 API 服务'}
-          {health.isSuccess &&
-            `后端已连接：${health.data.service} · ${health.data.env} · ${health.data.version}`}
+          {health.isSuccess && '后端已连接'}
         </div>
       </section>
 

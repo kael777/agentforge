@@ -13,12 +13,7 @@ describe('App', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({
-            status: 'ok',
-            service: 'agentforge-api',
-            version: 'dev',
-            env: 'local',
-          }),
+          JSON.stringify({ status: 'ok' }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         ),
       ),
