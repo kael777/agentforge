@@ -57,6 +57,24 @@ TEXT_SUFFIXES = {
     ".yml", ".yaml", ".conf", ".example", ".html", ".css", ".service",
 }
 
+# 生成项目里不该再出现 AgentForge 的品牌字样。做成显式映射而不是整体替换
+# "AgentForge"，避免把 "AgentForge Web" 拼成 "demo-web Web"。
+BRANDING = {
+    "AgentForge HTTP API": "{name} HTTP API",
+    "AgentForge realtime WebSocket service": "{name} realtime WebSocket service",
+    "AgentForge React frontend": "{name} frontend",
+    "AgentForge WebSocket 调试台": "{name} WebSocket 调试台",
+    "AgentForge Web": "{name}",
+    "AgentForge API 后端": "{name} 后端",
+    "<title>AgentForge Web</title>": "<title>{name}</title>",
+    "AgentForge 的独立后端工程": "{name} 的后端工程",
+    "AgentForge Realtime（WebSocket 服务）": "{name} Realtime（WebSocket 服务）",
+}
+
+
+def branding_pairs(name: str) -> list[tuple[str, str]]:
+    return [(old, new.format(name=name)) for old, new in BRANDING.items()]
+
 
 def fail(message: str) -> "NoReturn":  # type: ignore[name-defined]
     print(f"错误：{message}", file=sys.stderr)
@@ -110,9 +128,52 @@ def write_env(target: Path, template: str, name: str) -> None:
     (target / ".env").write_text(content, encoding="utf-8", newline="")
 
 
-def add_container_files(target: Path, template: str, module: str | None) -> None:
-    """把 devops 里的镜像定义搬进生成的项目，并改写成本地路径。"""
+SOURCE_URL = "https://github.com/kael777/agentforge"
+
+
+def repo_url(module: str | None) -> str | None:
+    """从 module path 推出新项目的仓库地址，推不出来就返回 None。"""
+    if not module:
+        return None
+    parts = module.split("/")
+    if len(parts) >= 3 and parts[0] == "github.com":
+        return f"https://github.com/{parts[1]}/{parts[2]}"
+    return None
+
+
+def rewrite_source_label(text: str, url: str | None) -> str:
+    """改写或删除 OCI source 标签。
+
+    标签是多行 LABEL 的最后一行，删除时必须顺手去掉上一行末尾的反斜杠，
+    否则 Dockerfile 会变成语法错误。
+    """
+    out: list[str] = []
+    for line in text.splitlines(keepends=True):
+        if "org.opencontainers.image.source=" not in line:
+            out.append(line)
+            continue
+        if url is None:
+            if out and out[-1].rstrip("\r\n").endswith("\\"):
+                previous = out[-1].rstrip("\r\n")
+                out[-1] = previous[:-1].rstrip() + "\n"
+            continue
+        out.append(line.replace(SOURCE_URL, url))
+    return "".join(out)
+
+
+def finalize_dockerfile(text: str, template: str, name: str, url: str | None) -> str:
+    """两个分支共用的收尾：改名、换仓库地址、去掉品牌字样。"""
+    text = text.replace(TEMPLATES[template]["service"], name)
+    text = rewrite_source_label(text, url)
+    for old, new in branding_pairs(name):
+        text = text.replace(old, new)
+    return text
+
+
+def add_container_files(target: Path, template: str, module: str | None, name: str) -> None:
+    """把 devops 里的镜像定义搬进生成的项目，并把所有指向本源仓库的内容改掉。"""
     docker_dir = REPO_ROOT / "devops" / "docker"
+    url = repo_url(module)
 
     if template == "web":
         nginx_conf = (REPO_ROOT / "devops" / "nginx" / "web-static.conf").read_text(encoding="utf-8")
@@ -131,17 +192,20 @@ def add_container_files(target: Path, template: str, module: str | None) -> None
             "# config that lives under devops/.\n",
             "# Build context is the project root.\n",
         )
-        (target / "Dockerfile").write_text(dockerfile, encoding="utf-8", newline="")
+        (target / "Dockerfile").write_text(
+            finalize_dockerfile(dockerfile, template, name, url), encoding="utf-8", newline=""
+        )
         (target / ".dockerignore").write_text(
             "node_modules\ndist\n.env\n.env.*\n!.env.example\n.git\n", encoding="utf-8", newline=""
         )
         return
 
-    source = docker_dir / f"{template}.Dockerfile"
-    dockerfile = source.read_text(encoding="utf-8")
+    dockerfile = (docker_dir / f"{template}.Dockerfile").read_text(encoding="utf-8")
     if module:
         dockerfile = dockerfile.replace(TEMPLATES[template]["module"], module)
-    (target / "Dockerfile").write_text(dockerfile, encoding="utf-8", newline="")
+    (target / "Dockerfile").write_text(
+        finalize_dockerfile(dockerfile, template, name, url), encoding="utf-8", newline=""
+    )
 
 
 def init_git(target: Path, name: str) -> bool:
@@ -194,10 +258,10 @@ def main() -> int:
     if spec["module"] and module:
         replacements.append((spec["module"], module))
     replacements.append((spec["service"], args.name))
-    replace_in_tree(target, [pair for pair in replacements if pair[0]])
+    replace_in_tree(target, [pair for pair in replacements if pair[0]] + branding_pairs(args.name))
 
     write_env(target, args.template, args.name)
-    add_container_files(target, args.template, module)
+    add_container_files(target, args.template, module, args.name)
 
     if args.init_git and init_git(target, args.name):
         print("  已初始化 git 并提交")
