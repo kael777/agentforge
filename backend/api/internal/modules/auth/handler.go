@@ -6,9 +6,7 @@ import (
 
 	"github.com/kael777/agentforge/backend/api/internal/transport/httpx"
 
-	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Handler struct {
@@ -50,20 +48,11 @@ func (h *Handler) Login(c fiber.Ctx) error {
 }
 
 func (h *Handler) Me(c fiber.Ctx) error {
-	token := jwtware.FromContext(c)
-	if token == nil {
-		return fiber.ErrUnauthorized
-	}
-	claims, ok := token.Claims.(jwt.MapClaims)
+	parsed, ok := ClaimsFromContext(c)
 	if !ok {
 		return fiber.ErrUnauthorized
 	}
-	subject, err := claims.GetSubject()
-	if err != nil || subject == "" {
-		return fiber.ErrUnauthorized
-	}
-	email, _ := claims["email"].(string)
-	return c.JSON(UserView{ID: subject, Email: email})
+	return c.JSON(UserView{ID: parsed.Subject, Email: parsed.Email})
 }
 
 func (h *Handler) writeServiceError(c fiber.Ctx, err error) error {

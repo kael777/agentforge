@@ -18,9 +18,23 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
+// dummyPasswordHash is compared against when the email is unknown. Without it
+// a login for a missing account returns in microseconds while a real account
+// takes a full bcrypt round, which turns response time into an account
+// enumeration oracle.
+var dummyPasswordHash = func() []byte {
+	hash, err := bcrypt.GenerateFromPassword([]byte("agentforge-timing-equalization"), bcrypt.DefaultCost)
+	if err != nil {
+		panic(fmt.Sprintf("generate dummy password hash: %v", err))
+	}
+	return hash
+}()
+
 type Service struct {
 	users     UserRepository
 	jwtSecret []byte
+	issuer    string
+	audience  string
 	tokenTTL  time.Duration
 	now       func() time.Time
 }
@@ -35,22 +49,38 @@ type AuthResult struct {
 	User  UserView `json:"user"`
 }
 
-type tokenClaims struct {
+// Claims is the token payload the service signs and the middleware accepts.
+// Issuer and Audience keep tokens from one service from being replayed at
+// another, and the JWT ID makes a single token individually revocable later.
+type claims struct {
 	Email string `json:"email"`
 	jwt.RegisteredClaims
 }
 
-func NewService(users UserRepository, jwtSecret string, tokenTTL time.Duration) (*Service, error) {
+func NewService(users UserRepository, jwtSecret, issuer, audience string, tokenTTL time.Duration) (*Service, error) {
 	if users == nil {
 		return nil, errors.New("user repository is required")
 	}
 	if len(jwtSecret) < 32 {
 		return nil, errors.New("JWT secret must be at least 32 characters")
 	}
+	if strings.TrimSpace(issuer) == "" {
+		return nil, errors.New("JWT issuer is required")
+	}
+	if strings.TrimSpace(audience) == "" {
+		return nil, errors.New("JWT audience is required")
+	}
 	if tokenTTL <= 0 {
 		return nil, errors.New("token TTL must be positive")
 	}
-	return &Service{users: users, jwtSecret: []byte(jwtSecret), tokenTTL: tokenTTL, now: time.Now}, nil
+	return &Service{
+		users:     users,
+		jwtSecret: []byte(jwtSecret),
+		issuer:    issuer,
+		audience:  audience,
+		tokenTTL:  tokenTTL,
+		now:       time.Now,
+	}, nil
 }
 
 func (s *Service) Register(ctx context.Context, email, password string) (AuthResult, error) {
@@ -80,11 +110,15 @@ func (s *Service) Register(ctx context.Context, email, password string) (AuthRes
 func (s *Service) Login(ctx context.Context, email, password string) (AuthResult, error) {
 	email, err := normalizeEmail(email)
 	if err != nil {
+		// Even a malformed email costs one bcrypt round, so the timing of an
+		// invalid request matches the timing of a wrong password.
+		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 		return AuthResult{}, ErrInvalidCredentials
 	}
 	user, err := s.users.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
+			_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 			return AuthResult{}, ErrInvalidCredentials
 		}
 		return AuthResult{}, err
@@ -97,15 +131,18 @@ func (s *Service) Login(ctx context.Context, email, password string) (AuthResult
 
 func (s *Service) resultFor(user *User) (AuthResult, error) {
 	now := s.now().UTC()
-	claims := tokenClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		Email: user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.ID,
+			Issuer:    s.issuer,
+			Audience:  jwt.ClaimStrings{s.audience},
+			ID:        uuid.NewString(),
 			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.tokenTTL)),
 		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	})
 	signed, err := token.SignedString(s.jwtSecret)
 	if err != nil {
 		return AuthResult{}, fmt.Errorf("sign token: %w", err)

@@ -4,11 +4,10 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/kael777/agentforge/backend/api/internal/modules/auth"
 	"github.com/kael777/agentforge/backend/api/internal/transport/httpx"
 
-	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Handler struct {
@@ -65,18 +64,13 @@ func (h *Handler) writeServiceError(c fiber.Ctx, err error) error {
 	}
 }
 
+// currentUserID reads the subject the JWT middleware already verified. It never
+// parses the token again, so there is exactly one place that decides what an
+// authenticated request is.
 func currentUserID(c fiber.Ctx) (string, error) {
-	token := jwtware.FromContext(c)
-	if token == nil {
-		return "", fiber.ErrUnauthorized
-	}
-	claims, ok := token.Claims.(jwt.MapClaims)
+	userID, ok := auth.UserID(c)
 	if !ok {
 		return "", fiber.ErrUnauthorized
 	}
-	subject, err := claims.GetSubject()
-	if err != nil || subject == "" {
-		return "", fiber.ErrUnauthorized
-	}
-	return subject, nil
+	return userID, nil
 }

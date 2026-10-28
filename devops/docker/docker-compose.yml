@@ -26,12 +26,18 @@ services:
       APP_ENV: development
       SERVICE_NAME: agentforge-api
       HTTP_ADDR: :55555
+      # Inside the container the management listener binds all interfaces, but
+      # the port is never published, so it stays on the container network.
+      MANAGEMENT_ADDR: :55556
+      MANAGEMENT_ALLOW_NON_LOOPBACK: "true"
       HTTP_ALLOWED_ORIGINS: http://localhost:5173
       DATABASE_DSN: "agentforge:agentforge@tcp(mysql:3306)/agentforge?charset=utf8mb4&parseTime=True&loc=UTC"
       DATABASE_MAX_IDLE_CONNS: 5
       DATABASE_MAX_OPEN_CONNS: 20
       DATABASE_CONN_MAX_LIFETIME: 1h
       JWT_SECRET: local-development-secret-at-least-32-characters
+      JWT_ISSUER: agentforge-api
+      JWT_AUDIENCE: agentforge-web
       JWT_TTL: 24h
       LOG_LEVEL: info
       SHUTDOWN_TIMEOUT: 10s

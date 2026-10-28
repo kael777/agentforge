@@ -73,6 +73,8 @@ sudo journalctl -u agentforge-api -f
 
 unit 在启动 API 前运行幂等 migration。生产环境配置使用 `HTTP_ADDR=127.0.0.1:55555`，避免绕过 Nginx 直接访问后端。
 
+服务同时监听一个管理端口 `MANAGEMENT_ADDR=127.0.0.1:55556`，只提供 `/readyz`、`/version` 和 `/metrics`。该端口只绑定回环地址，部署时不要把 `55556` 写进安全组、Docker `ports` 或 Nginx `proxy_pass`。
+
 发布时上传一个完整 release，切换软链接后重启：
 
 ```bash
@@ -86,7 +88,8 @@ sudo systemctl restart agentforge-api
 
 `nginx/agentforge.conf` 默认用于 React 与 API 同域：
 
-- `/api/*`、`/healthz`、`/readyz` 代理到 `127.0.0.1:55555`。
+- `/api/*`、`/healthz` 代理到 `127.0.0.1:55555`。
+- `/readyz`、`/version`、`/metrics` 不经过 Nginx，只在管理端口 `127.0.0.1:55556` 上可达。
 - 其他路径读取 React `web/dist`。
 - 未匹配到静态文件时回退到 `index.html`，支持前端路由刷新。
 

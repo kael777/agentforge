@@ -115,6 +115,7 @@ CI 会将 Go 二进制、React `dist` 和部署配置组成同一个不可变制
 ## 当前进度
 
 - [x] Go/Fiber/GORM/MySQL 后端基线
+- [x] 安全基线：公网/管理端口拆分、响应头与日志脱敏、登录限流、token 校验、生产配置校验
 - [x] React/Vite 通用前端脚手架
 - [x] Docker、systemd、Nginx 和跨平台构建
 - [x] 全栈 CI、Tag Release 和统一命令入口

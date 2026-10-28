@@ -10,13 +10,18 @@ import (
 	"github.com/kael777/agentforge/backend/api/internal/modules/health"
 	"github.com/kael777/agentforge/backend/api/internal/modules/todo"
 	"github.com/kael777/agentforge/backend/api/internal/platform/database"
+	"github.com/kael777/agentforge/backend/api/internal/platform/metrics"
 	"github.com/kael777/agentforge/backend/api/internal/server"
 
 	"github.com/gofiber/fiber/v3"
 )
 
+// Application owns the two listeners the process exposes. They are separate
+// Fiber instances on purpose: the public one can be reached from the internet,
+// the management one is meant for the host.
 type Application struct {
-	HTTP *fiber.App
+	HTTP       *fiber.App
+	Management *fiber.App
 }
 
 func New(cfg config.Config, logger *slog.Logger, db *database.Connection) (*Application, error) {
@@ -28,7 +33,13 @@ func New(cfg config.Config, logger *slog.Logger, db *database.Connection) (*Appl
 	}
 
 	userRepository := auth.NewGormUserRepository(db.GORM)
-	authService, err := auth.NewService(userRepository, cfg.Auth.JWTSecret, cfg.Auth.TokenTTL)
+	authService, err := auth.NewService(
+		userRepository,
+		cfg.Auth.JWTSecret,
+		cfg.Auth.Issuer,
+		cfg.Auth.Audience,
+		cfg.Auth.TokenTTL,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -46,13 +57,23 @@ func New(cfg config.Config, logger *slog.Logger, db *database.Connection) (*Appl
 		Env:       cfg.AppEnv,
 	})
 
-	httpApp := server.New(server.Dependencies{
-		Config:        cfg,
-		Logger:        logger,
-		Health:        healthHandler,
-		Auth:          authHandler,
-		Todo:          todoHandler,
-		JWTMiddleware: auth.NewJWTMiddleware(cfg.Auth.JWTSecret, logger),
-	})
-	return &Application{HTTP: httpApp}, nil
+	deps := server.Dependencies{
+		Config:  cfg,
+		Logger:  logger,
+		Health:  healthHandler,
+		Auth:    authHandler,
+		Todo:    todoHandler,
+		Metrics: metrics.New(db.SQL),
+		JWTMiddleware: auth.NewJWTMiddleware(auth.MiddlewareConfig{
+			Secret:   cfg.Auth.JWTSecret,
+			Issuer:   cfg.Auth.Issuer,
+			Audience: cfg.Auth.Audience,
+			Logger:   logger,
+		}),
+	}
+
+	return &Application{
+		HTTP:       server.NewPublic(deps),
+		Management: server.NewManagement(deps),
+	}, nil
 }

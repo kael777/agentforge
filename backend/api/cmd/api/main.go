@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/kael777/agentforge/backend/api/internal/app"
 	"github.com/kael777/agentforge/backend/api/internal/config"
@@ -46,11 +47,27 @@ func run() error {
 		return err
 	}
 
-	listenErr := make(chan error, 1)
-	go func() {
-		logger.Info("http server starting", "address", cfg.HTTP.Address)
-		listenErr <- application.HTTP.Listen(cfg.HTTP.Address)
-	}()
+	// Listeners are created before the goroutines start so a bind failure is a
+	// startup error, not a background surprise after the service reports ready.
+	publicListener, err := net.Listen("tcp", cfg.HTTP.Address)
+	if err != nil {
+		return fmt.Errorf("listen on public address %s: %w", cfg.HTTP.Address, err)
+	}
+	managementListener, err := net.Listen("tcp", cfg.HTTP.ManagementAddress)
+	if err != nil {
+		_ = publicListener.Close()
+		return fmt.Errorf("listen on management address %s: %w", cfg.HTTP.ManagementAddress, err)
+	}
+
+	logger.Info("servers starting",
+		"public_address", cfg.HTTP.Address,
+		"management_address", cfg.HTTP.ManagementAddress,
+		"environment", cfg.AppEnv,
+	)
+
+	serverErr := make(chan error, 2)
+	go func() { serverErr <- application.HTTP.Listener(publicListener) }()
+	go func() { serverErr <- application.Management.Listener(managementListener) }()
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -59,7 +76,9 @@ func run() error {
 	select {
 	case sig := <-signals:
 		logger.Info("shutdown signal received", "signal", sig.String())
-	case err := <-listenErr:
+	case err := <-serverErr:
+		_ = application.HTTP.Shutdown()
+		_ = application.Management.Shutdown()
 		if err != nil {
 			return err
 		}
@@ -68,14 +87,13 @@ func run() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
-	if err := application.HTTP.ShutdownWithContext(ctx); err != nil && !errors.Is(err, context.Canceled) {
-		return err
-	}
 
-	select {
-	case err := <-listenErr:
-		return err
-	case <-time.After(time.Second):
-		return nil
+	var shutdownErr error
+	if err := application.HTTP.ShutdownWithContext(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		shutdownErr = errors.Join(shutdownErr, fmt.Errorf("shutdown public listener: %w", err))
 	}
+	if err := application.Management.ShutdownWithContext(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		shutdownErr = errors.Join(shutdownErr, fmt.Errorf("shutdown management listener: %w", err))
+	}
+	return shutdownErr
 }
