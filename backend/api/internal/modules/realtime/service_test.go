@@ -71,11 +71,11 @@ func TestIssueRejectsEmptySubject(t *testing.T) {
 
 func TestNewServiceRejectsUnsafeConfig(t *testing.T) {
 	cases := map[string]Config{
-		"short secret":    {Secret: "too-short", Issuer: testIssuer, Audience: testAudience, TTL: time.Second},
-		"missing issuer":  {Secret: testSecret, Issuer: "", Audience: testAudience, TTL: time.Second},
+		"short secret":     {Secret: "too-short", Issuer: testIssuer, Audience: testAudience, TTL: time.Second},
+		"missing issuer":   {Secret: testSecret, Issuer: "", Audience: testAudience, TTL: time.Second},
 		"missing audience": {Secret: testSecret, Issuer: testIssuer, Audience: "", TTL: time.Second},
-		"zero ttl":        {Secret: testSecret, Issuer: testIssuer, Audience: testAudience, TTL: 0},
-		"long ttl":        {Secret: testSecret, Issuer: testIssuer, Audience: testAudience, TTL: 10 * time.Minute},
+		"zero ttl":         {Secret: testSecret, Issuer: testIssuer, Audience: testAudience, TTL: 0},
+		"long ttl":         {Secret: testSecret, Issuer: testIssuer, Audience: testAudience, TTL: 10 * time.Minute},
 	}
 	for name, cfg := range cases {
 		t.Run(name, func(t *testing.T) {

@@ -1,6 +1,6 @@
 module github.com/kael777/agentforge/backend/api
 
-go 1.26.10
+go 1.27.3
 
 require (
 	github.com/gofiber/fiber/v3 v3.5.0

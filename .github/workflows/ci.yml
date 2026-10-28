@@ -19,9 +19,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          # go.mod sets the floor (go 1.26.10); using the latest patch here means
+          # go.mod sets the floor (go 1.27.3); using the latest patch here means
           # standard library fixes are picked up without editing the workflow.
-          go-version: "1.26.x"
+          go-version: "1.27.x"
           cache-dependency-path: backend/api/go.sum
       - run: go test -race ./...
       - run: go vet ./...
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.26.x"
+          go-version: "1.27.x"
           cache-dependency-path: backend/ws/go.sum
       - run: go test -race ./...
       - run: go vet ./...
@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.26.x"
+          go-version: "1.27.x"
           cache-dependency-path: backend/api/go.sum
       - name: Install govulncheck
         run: |
