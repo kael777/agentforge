@@ -15,6 +15,7 @@ agentforge/
 │   └── ws/                  Go + net/http WebSocket 实时服务
 ├── frontend/
 │   └── web/                 通用 React + Vite 前端
+├── templates/               三个模板的说明与生成入口
 ├── devops/
 │   ├── docker/              Dockerfile 与 Docker Compose
 │   ├── env/                 生产环境变量示例
@@ -25,6 +26,19 @@ agentforge/
 ├── dist/                    本地构建产物，不提交 Git
 └── Makefile                 Linux、macOS 和 CI 的统一入口
 ```
+
+## 作为模板使用
+
+`backend/api`、`backend/ws`、`frontend/web` 同时就是这个仓库的三个模板，
+没有第二份副本。生成一个独立项目：
+
+```bash
+python devops/scripts/new-project.py --template api --name my-service \
+  --target ../my-service --module github.com/acme/my-service --init-git
+```
+
+生成结果自包含：改好 module path 与所有 import、带上自己的 Dockerfile、
+生成随机密钥的 `.env`。模板包含什么、如何验证见 [templates/README.md](templates/README.md)。
 
 ## 环境要求
 

@@ -90,3 +90,40 @@ jobs:
       # Building here is what catches a broken Dockerfile or a missing build
       # argument before a tag does.
       - run: docker compose -f devops/docker/docker-compose.yml build
+
+  # The templates are the real services, so generating and building them is what
+  # proves "one command produces a working project" stays true.
+  templates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.x"
+          cache-dependency-path: backend/api/go.sum
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+      - name: Generate and verify the Go templates
+        run: |
+          set -euo pipefail
+          python3 devops/scripts/new-project.py --template api --name ci-api \
+            --target /tmp/ci-api --module github.com/ci/ci-api
+          (cd /tmp/ci-api && go mod tidy && go test ./... && go build ./...)
+          python3 devops/scripts/new-project.py --template ws --name ci-ws \
+            --target /tmp/ci-ws --module github.com/ci/ci-ws
+          (cd /tmp/ci-ws && go mod tidy && go test ./... && go build ./...)
+      - name: Generate and verify the web template
+        run: |
+          set -euo pipefail
+          python3 devops/scripts/new-project.py --template web --name ci-web --target /tmp/ci-web
+          (cd /tmp/ci-web && npm ci && npm run build)
+      - name: Reject leftover references to the source repository
+        run: |
+          set -euo pipefail
+          if grep -rl "kael777/agentforge" /tmp/ci-api /tmp/ci-ws /tmp/ci-web; then
+            echo "::error::a generated project still references the source repository"
+            exit 1
+          fi

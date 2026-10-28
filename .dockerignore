@@ -1,0 +1,16 @@
+# Build context is the repository root for the web image, so this file has to
+# exclude the heavy and the secret parts of the tree.
+.git
+.github
+docs/plans
+
+# Dependencies and build output are always produced inside the image.
+**/node_modules
+**/dist
+**/bin
+**/coverage.out
+
+# Secrets never belong in a build context.
+**/.env
+**/.env.*
+!**/.env.example
