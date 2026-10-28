@@ -112,10 +112,12 @@ go run ./cmd/ws
 自检（需要 API 与实时服务都在运行）：
 
 ```powershell
-.\devops\scripts\ws-smoke.ps1
+.\devops\scripts\ws-smoke.ps1          # PowerShell
+python devops\scripts\ws-demo.py       # Python 3.10+，pip install "websockets>=12"
 ```
 
-它会完成：登录取 token → 换取 ticket → 连接 → 订阅 → 发布 → 心跳，
+两个脚本都完成同样的链路：登录取 token → 换取 ticket → 连接 → 订阅 → 发布 →
+心跳。Python 版本还会演示非法 topic 的错误帧和票据重放被拒绝。
 全部通过时输出 `RESULT: PASS`。
 
 ## 测试

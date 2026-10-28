@@ -128,13 +128,24 @@ CI 会将 Go 二进制、React `dist` 和部署配置组成同一个不可变制
 
 ## 当前进度
 
-- [x] Go/Fiber/GORM/MySQL 后端基线
-- [x] 安全基线：公网/管理端口拆分、响应头与日志脱敏、登录限流、token 校验、生产配置校验
-- [x] WebSocket 实时服务：一次性 ticket 鉴权、Origin 白名单、连接与速率限制、优雅关闭
-- [x] React/Vite 通用前端脚手架
-- [x] Docker、systemd、Nginx 和跨平台构建
-- [x] 全栈 CI、Tag Release 和统一命令入口
-- [x] Phase 0 架构决策记录
-- [ ] Phase 1 最小命令行 Agent Demo
+| 模块 | 状态 | 说明 |
+| --- | --- | --- |
+| Go API 基线 | ✅ | Fiber + GORM + MySQL，分层、DI、优雅退出 |
+| 安全基线 | ✅ | 公网/管理端口拆分、响应头与日志脱敏、限流、token 作用域校验、生产配置校验 |
+| 可观测性（应用侧） | ✅ | `/metrics`：请求、延迟、并发、连接池、Go 运行时 |
+| 可观测性（采集侧） | ⬜ | Alloy / Prometheus / Grafana / Trace 尚未搭建 |
+| WebSocket 实时服务 | ✅ | 一次性票据、Origin 白名单、连接与速率限制、优雅关闭 |
+| React/Vite 前端 | ✅ | 路由、请求、Zod 校验、测试与构建 |
+| 部署配置 | ✅ | systemd、Nginx、Docker、跨平台构建（unit 未在 Linux 实机验证） |
+| CI / Release | ✅ | 双 module 测试与构建、Tag 不可变制品 |
+| 备份与恢复演练 | ⬜ | 未开始 |
+| 只读 AI 排障 Agent | ⬜ | 未开始 |
+| Agent Demo | ⬜ | 已归档到 `spike/agent-runtime` 分支，待基线稳定后重做 |
 
-后端接口说明见 `backend/api/README.md`，前端说明见 `frontend/web/README.md`，部署说明见 `devops/README.md`。
+已知限制：
+
+- WebSocket 票据的单次使用依赖进程内缓存，多实例部署需要改用共享存储。
+- 关闭握手最长约 5 秒（`coder/websocket` 行为），因此排空预算不得小于该值。
+- `.github/workflows/ci.yml` 使用 `go test -race`，但 Windows 开发机缺少 gcc，未能本地验证。
+
+说明文档：后端接口见 `backend/api/README.md`，实时服务协议见 `backend/ws/README.md`，前端见 `frontend/web/README.md`，部署见 `devops/README.md`。
