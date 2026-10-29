@@ -350,7 +350,11 @@ sudo wg syncconf wg0 <(wg-quick strip wg0)
 
 `wg syncconf` 只应用差异，已有连接不断；`systemctl restart` 会重建接口，所有 peer 瞬断。
 
-规模上限：hub 转发要解密再加密，超过 5～8 个节点就会成为瓶颈；再多要考虑
+超过 5 台时不要手改 ``wg0.conf``：``tee >` 是覆盖写，漏一段 `[Peer]` 就掉一台。
+仓库里的 ``devops/scripts/wg-config.py`` 用一份 CSV 清单生成全部配置，
+并检查地址冲突、公钥格式与分段约定。
+
+规模上限：hub 转发要解密再加密，节点多了之后它先成为瓶颈；再多要考虑
 同云直连、网状 peer 或换成托管的组网方案。
 
 ## 11. 遗留
