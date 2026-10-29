@@ -20,6 +20,13 @@
 
 - [工程化学习笔记](./工程化学习笔记.md)：记录 `.gitattributes`、密钥扫描、Go module 等实践中遇到的知识点和排查经验。
 
+**开发日志**
+
+- [logs/](./logs/README.md)：按 Step 记录做过什么、为什么这么选、踩了什么坑。已脱敏，随仓库发布。
+  - [Step 2：后端安全基线、实时服务与模板化](./logs/step-02-security-baseline.md)
+  - [Step 1：跨服务商 WireGuard 组网与服务器基线](./logs/step-01-network.md)
+
 ## 本地文件
 
-`docs/plans/` 被 `.gitignore` 排除，只在本地维护（服务器拓扑、安全组、备份与排障方案），不随仓库上传。
+`docs/plans/` 被 `.gitignore` 排除，只在本地维护（真实拓扑、IP、安全组、密钥位置、备份与排障方案），不随仓库上传。
+两者分工：`plans/` 是怎么做，`logs/` 是做过什么。
