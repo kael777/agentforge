@@ -3,6 +3,7 @@ setlocal EnableExtensions
 set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%..\..") do set "DEMO_ROOT=%%~fI"
 set "BACKEND_DIR=%DEMO_ROOT%\backend\api"
+set "WS_DIR=%DEMO_ROOT%\backend\ws"
 set "OUTPUT_ROOT=%DEMO_ROOT%\dist"
 cd /d "%BACKEND_DIR%"
 
@@ -65,4 +66,11 @@ go build -trimpath -ldflags "%API_LDFLAGS%" -o "%OUT_DIR%\api%EXT%" ./cmd/api
 if errorlevel 1 exit /b 1
 go build -trimpath -ldflags "-s -w" -o "%OUT_DIR%\migrate%EXT%" ./cmd/migrate
 if errorlevel 1 exit /b 1
+
+rem The realtime service is a separate module; its binary goes to the same dir.
+pushd "%WS_DIR%"
+go build -trimpath -ldflags "-s -w" -o "%OUT_DIR%\ws%EXT%" ./cmd/ws
+set "WS_RESULT=%errorlevel%"
+popd
+if not "%WS_RESULT%"=="0" exit /b 1
 exit /b 0
