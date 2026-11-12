@@ -1,0 +1,81 @@
+# 服务器上的基础设施（MySQL / 可选 Redis）
+#
+# 与 devops/docker/docker-compose.yml 的区别：
+#   那个是本地开发用，会一次性起 mysql + api + ws；
+#   这个是"一台服务器的基础设施"，只跑数据组件，不跑业务进程。
+#
+# 端口纪律：只发布到 127.0.0.1，不对公网开放。对外只有一个入口——宿主机 Nginx 的 443。
+#
+# 用法见同目录 README.md。
+
+name: agentforge-infra
+
+services:
+  mysql:
+    # 镜像按 digest 固定：tag 可以被重新指向，digest 不能。
+    image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-agentforge}
+      MYSQL_USER: ${MYSQL_USER:-agentforge}
+      # 密码走文件：不进环境变量，也不会出现在 docker inspect 里
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_app
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      # 容器内监听所有接口是必须的，否则宿主机端口映射进不来；
+      # 真正的边界在下面的 ports：只发布到 127.0.0.1。
+      - --bind-address=0.0.0.0
+      - --slow-query-log=1
+      - --long-query-time=1
+    ports:
+      # 默认 13306：宿主机上很可能已经有一个 3306 的 MySQL（宝塔、apt 或云厂商镜像）。
+      # 换端口不是为了"能跑"，是为了两边不打架，且一眼能看出这不是宿主机那个。
+      - "127.0.0.1:${MYSQL_HOST_PORT:-13306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    secrets:
+      - mysql_root
+      - mysql_app
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -uroot -p\"$$(cat /run/secrets/mysql_root)\" -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  redis:
+    # 默认不启动：应用当前不依赖 Redis，多一个有状态的组件就是多一份攻击面和备份责任。
+    # 需要时：--profile with-redis
+    profiles: ["with-redis"]
+    image: redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    restart: unless-stopped
+    # 密码写在配置文件里，由 secret 挂进来——不经过环境变量。
+    command: ["redis-server", "/run/secrets/redis_conf"]
+    # 刻意不发布端口：只有同一 compose 网络里的容器能访问。
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    secrets:
+      - redis_conf
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$(sed -n 's/^requirepass //p' /run/secrets/redis_conf)\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mysql-data:
+  redis-data:
+
+secrets:
+  mysql_root:
+    file: ${SECRETS_DIR:-./secrets}/mysql_root.txt
+  mysql_app:
+    file: ${SECRETS_DIR:-./secrets}/mysql_app.txt
+  redis_conf:
+    file: ${SECRETS_DIR:-./secrets}/redis.conf

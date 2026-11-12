@@ -8,3 +8,7 @@
 
 # 本地方案草稿：含服务器角色、安全组、备份与排障细节，只在本地维护，不随仓库上传。
 /docs/plans/
+
+# 服务器基础设施的密码文件
+/devops/docker/server/secrets/
+/devops/docker/server/.env

@@ -24,6 +24,37 @@ mysql -h 127.0.0.1 -P 13306 -uagentforge -p agentforge
 
 示例账号密码只用于本地开发，生产环境不得直接使用，也不要把 MySQL 端口暴露到公网。
 
+## 服务器基础设施（Docker）
+
+`devops/docker/server/` 是"一台服务器上的数据组件"：MySQL 必选、Redis 可选（profile）。
+和本地开发用的 `devops/docker/docker-compose.yml` 分开，那个会一次起 mysql + api + ws。
+
+设计要点：
+
+- **只发布到 127.0.0.1**。对外入口只有一个——宿主机 Nginx 的 443。
+- **宿主端口可配**，默认 `13306`。服务器交付时常常已经带了 3306 的 MySQL（宝塔/apt/云镜像），
+  换端口是为了不打架，也为了让人一眼看出这不是宿主机那个库。
+- **密码走 secret 文件**，不进环境变量，`docker inspect` 里看不到。
+- **Redis 默认不启动**，且不发布端口——应用当前不依赖它，多一个有状态组件就多一份备份责任。
+
+```bash
+cd devops/docker/server
+cp .env.example .env && mkdir -p secrets
+openssl rand -base64 32 > secrets/mysql_root.txt
+openssl rand -base64 32 > secrets/mysql_app.txt
+
+bash ../../scripts/port-check.sh        # 预检：端口占用、宿主已有 MySQL、0.0.0.0 发布
+docker compose --env-file .env up -d --wait
+```
+
+`port-check.sh` 会直接指出三类问题：目标端口被占用、宿主已有同名服务在跑、
+以及"某个容器把端口发布到了所有网卡"。
+
+**宿主已有 MySQL 时二选一，不要都跑**：用它（改 DSN，不启容器）或停用它
+（`systemctl disable --now mysql`）。两个都跑 = 内存双份 + 备份漏一个 + 排查时连错库。
+
+细节见 [docker/server/README.md](./docker/server/README.md)。
+
 ## 跨平台构建
 
 Windows 构建全部目标：
