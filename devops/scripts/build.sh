@@ -10,6 +10,10 @@ cd "$BACKEND_DIR"
 
 target="${1:-all}"
 target_arch="${2:-amd64}"
+pack=0
+case "${3:-}" in
+  pack|--pack) pack=1 ;;
+esac
 version="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo dev)}"
 commit="${COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo unknown)}"
 build_time="${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
@@ -37,6 +41,31 @@ build_target() {
   (cd "$WS_DIR" && CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath \
     -ldflags "-s -w" \
     -o "${output_dir}/ws${extension}" ./cmd/ws)
+
+  if [[ "$pack" -eq 1 ]]; then
+    pack_target "$goos" "$goarch" "$output_dir"
+  fi
+}
+
+pack_target() {
+  local goos="$1"
+  local goarch="$2"
+  local output_dir="$3"
+  local archive_base="${OUTPUT_ROOT}/agentforge_${version}_${goos}_${goarch}"
+
+  # Bundle the deploy files so the archive is directly usable on a server.
+  rm -rf "${output_dir}/deploy"
+  mkdir -p "${output_dir}/deploy"
+  cp -R "${DEMO_ROOT}/devops/env" "${DEMO_ROOT}/devops/nginx" "${DEMO_ROOT}/devops/systemd" \
+    "${output_dir}/deploy/"
+
+  if [[ "$goos" == "windows" ]]; then
+    (cd "$output_dir" && zip -qr "${archive_base}.zip" .)
+    echo "Packed: ${archive_base}.zip"
+  else
+    tar -czf "${archive_base}.tar.gz" -C "$output_dir" .
+    echo "Packed: ${archive_base}.tar.gz"
+  fi
 }
 
 case "$target" in
@@ -52,7 +81,7 @@ case "$target" in
     ;;
   *)
     echo "Unsupported target: $target" >&2
-    echo "Usage: bash build.sh [all|windows|linux|darwin] [amd64|arm64]" >&2
+    echo "Usage: bash build.sh [all|windows|linux|darwin] [amd64|arm64] [pack]" >&2
     exit 2
     ;;
 esac

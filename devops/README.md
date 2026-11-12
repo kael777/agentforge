@@ -77,7 +77,24 @@ bash devops/scripts/build.sh linux arm64
 bash devops/scripts/build_mac.sh
 ```
 
-脚本使用 `CGO_ENABLED=0`，生成 Windows amd64、Linux amd64/arm64、macOS amd64/arm64 的 `api` 和 `migrate`，产物统一写入仓库根目录的 `dist`。
+脚本使用 `CGO_ENABLED=0`，生成 API 的 `api`、`migrate` 与实时服务的 `ws`，
+产物统一写入仓库根目录的 `dist/<os>-<arch>/`。
+
+**加 `pack` 参数会顺带打出可直接部署的归档**：
+
+```powershell
+$env:VERSION='v0.1.0'
+.\devops\scripts\build.bat linux amd64 pack
+# 产物：dist\agentforge_v0.1.0_linux_amd64.tar.gz
+```
+
+```bash
+VERSION=v0.1.0 bash devops/scripts/build.sh linux amd64 pack
+```
+
+归档内是 `api`、`migrate`、`ws` 加上 `deploy/{env,nginx,systemd}`，
+解开就能部署，不用再单独传 unit 和 nginx 配置。命名与 `release.yml` 产出的
+`agentforge_<版本>_<os>_<arch>.<ext>` 一致，本地验证和正式发布不会混淆。
 
 ## systemd 部署
 

@@ -11,6 +11,8 @@ set "TARGET=%~1"
 if not defined TARGET set "TARGET=all"
 set "TARGET_ARCH=%~2"
 if not defined TARGET_ARCH set "TARGET_ARCH=amd64"
+if /I "%~3"=="pack" set "PACK=1"
+if /I "%~3"=="--pack" set "PACK=1"
 
 if not defined VERSION (
   for /f "delims=" %%V in ('git describe --tags --always --dirty 2^>nul') do set "VERSION=%%V"
@@ -37,7 +39,7 @@ if /I "%TARGET%"=="all" (
 
 if /I not "%TARGET%"=="windows" if /I not "%TARGET%"=="linux" if /I not "%TARGET%"=="darwin" (
   echo Unsupported target: %TARGET%
-  echo Usage: build.bat [all^|windows^|linux^|darwin] [amd64^|arm64]
+  echo Usage: build.bat [all^|windows^|linux^|darwin] [amd64^|arm64] [pack]
   exit /b 2
 )
 
@@ -73,4 +75,24 @@ go build -trimpath -ldflags "-s -w" -o "%OUT_DIR%\ws%EXT%" ./cmd/ws
 set "WS_RESULT=%errorlevel%"
 popd
 if not "%WS_RESULT%"=="0" exit /b 1
+
+if not "%PACK%"=="1" exit /b 0
+
+rem Bundle the deploy files so the archive is directly usable on a server.
+if exist "%OUT_DIR%\deploy" rmdir /s /q "%OUT_DIR%\deploy"
+mkdir "%OUT_DIR%\deploy"
+xcopy /e /i /q "%DEMO_ROOT%\devops\env" "%OUT_DIR%\deploy\env" >nul
+xcopy /e /i /q "%DEMO_ROOT%\devops\nginx" "%OUT_DIR%\deploy\nginx" >nul
+xcopy /e /i /q "%DEMO_ROOT%\devops\systemd" "%OUT_DIR%\deploy\systemd" >nul
+
+set "ARCHIVE_BASE=%OUTPUT_ROOT%\agentforge_%VERSION%_%BUILD_OS%_%BUILD_ARCH%"
+if /I "%BUILD_OS%"=="windows" (
+  powershell -NoProfile -Command "Compress-Archive -Path '%OUT_DIR%\*' -DestinationPath '%ARCHIVE_BASE%.zip' -Force"
+  if errorlevel 1 exit /b 1
+  echo Packed: %ARCHIVE_BASE%.zip
+) else (
+  tar -czf "%ARCHIVE_BASE%.tar.gz" -C "%OUT_DIR%" .
+  if errorlevel 1 exit /b 1
+  echo Packed: %ARCHIVE_BASE%.tar.gz
+)
 exit /b 0
