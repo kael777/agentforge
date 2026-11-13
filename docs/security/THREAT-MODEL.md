@@ -124,7 +124,7 @@
 | 威胁 | 控制 |
 |---|---|
 | 依赖已知漏洞 | `govulncheck` 扫描两个 module 的**可达**调用路径（CI `security` job） |
-| 标准库漏洞 | `go.mod` 声明最低工具链 `go 1.27.3`，低于该版本自动升级 |
+| 标准库漏洞 | `go.mod` 声明最低工具链 `go 1.27.4`，低于该版本自动升级 |
 | 前端运行时依赖漏洞 | CI 执行 `npm audit --omit=dev --audit-level=high` |
 | 基础镜像被重新指向 | Dockerfile 按 digest 固定 `golang` / `alpine` |
 | 本地密钥进入镜像 | `.dockerignore` 排除 `.env`、`bin/` |
