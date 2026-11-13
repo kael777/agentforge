@@ -102,7 +102,7 @@ python devops/scripts/new-project.py --template api --name my-service \
 
 ## 环境要求
 
-- Go 1.27.3+（`go.mod` 声明的最低工具链版本，低于它会自动下载对应工具链）
+- Go 1.27.4+（`go.mod` 声明的最低工具链版本，低于它会自动下载对应工具链）
 - Node.js 24+
 - Docker 与 Docker Compose
 - Windows 使用 PowerShell；Linux/macOS/CI 可使用 Make 和 Bash
@@ -186,6 +186,15 @@ make check
 ```
 
 `build` 会生成多个平台的 Go 二进制，并构建 React `dist`。
+
+需要能直接部署的归档（二进制 + systemd/Nginx/env 示例）时加 `pack`：
+
+```powershell
+.\devops\scripts\build.bat linux amd64 pack
+```
+
+版本号自动取自 `git describe`，不要手写。命令表、`pack` 包含什么、
+以及"版本号从哪来"见 [devops/README.md](devops/README.md#构建与打包)。
 
 ## 发布
 

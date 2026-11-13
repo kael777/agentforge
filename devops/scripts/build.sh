@@ -18,6 +18,13 @@ version="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo d
 commit="${COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo unknown)}"
 build_time="${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
 
+# Version defaults to "git describe --tags --always --dirty": an exact tag when
+# HEAD is tagged, otherwise "<tag>-<commits>-g<sha>[-dirty]". Set VERSION only to
+# override it (for example to reproduce a past release).
+echo "Version: ${version}"
+echo "Commit:  ${commit}"
+echo "Time:    ${build_time}"
+
 build_target() {
   local goos="$1"
   local goarch="$2"

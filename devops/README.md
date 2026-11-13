@@ -55,46 +55,79 @@ docker compose --env-file .env up -d --wait
 
 细节见 [docker/server/README.md](./docker/server/README.md)。
 
-## 跨平台构建
+## 构建与打包
 
-Windows 构建全部目标：
+### 常用命令
 
-```powershell
-.\devops\scripts\build.bat
+| 场景 | 命令 | 产物 |
+|---|---|---|
+| 只想要二进制（本地调试） | `build.bat linux amd64` | `dist/linux-amd64/{api,migrate,ws}` |
+| 想要能直接部署的包 | `build.bat linux amd64 pack` | `dist/agentforge_<版本>_linux_amd64.tar.gz` |
+| 全部平台 | `build.bat` | `dist/<os>-<arch>/` 五套 |
+| Linux/macOS | `bash devops/scripts/build.sh linux amd64 pack` | 同上 |
+| 只构建 Linux（Windows 快捷方式） | `build_linux.bat` | 等价于 `build.bat linux` |
+| 构建当前 mac 架构 | `build_mac.sh` | 按 `uname -m` 选择 |
+
+`pack` 打出的归档包含三个二进制加 `deploy/`：
+
+```
+api  migrate  ws
+deploy/{env,nginx,systemd}
 ```
 
-只构建 Linux amd64：
+解开就能部署，不需要再单独传 systemd unit 和 Nginx 配置。
 
-```powershell
-.\devops\scripts\build_linux.bat
+### 版本号从哪来
+
+**默认不设，也不要设。** 脚本自己取 `git describe --tags --always --dirty`：
+
+| git 状态 | 结果 |
+|---|---|
+| HEAD 正好在 tag 上 | `v0.2.0` |
+| tag 之后有提交 | `v0.2.0-26-g36de941` |
+| 工作区有未提交改动 | 末尾加 `-dirty` |
+| 没有 tag / 不是 git 仓库 | 短 SHA 或 `dev` |
+
+构建时会先打印解析结果，不用猜：
+
+```
+Version: v0.1.0-26-g36de941-dirty
+Commit:  36de941
+Time:    2026-11-12T10:01:26Z
 ```
 
-Linux/macOS：
+这个版本号比手写的 `v0.1.0` 信息量大：能看出它是 tag 之后的第几次提交、对应哪个 commit、
+以及是不是从**有未提交改动的工作区**构建出来的——后者在排查线上问题时很关键。
 
-```bash
-bash devops/scripts/build.sh
-bash devops/scripts/build.sh linux arm64
-bash devops/scripts/build_mac.sh
-```
+只有三种情况需要显式覆盖：
 
-脚本使用 `CGO_ENABLED=0`，生成 API 的 `api`、`migrate` 与实时服务的 `ws`，
-产物统一写入仓库根目录的 `dist/<os>-<arch>/`。
+| 场景 | 做法 |
+|---|---|
+| 重建某个历史版本 | `VERSION=v0.1.0 bash devops/scripts/build.sh linux amd64 pack` |
+| 没有 git 的环境（导出的源码包） | 自动退化为 `dev`，也可显式指定 |
+| 正式发布 | 由 `release.yml` 用 tag 名，不经过本地脚本 |
 
-**加 `pack` 参数会顺带打出可直接部署的归档**：
+### 要一个"正式版"的包
 
 ```powershell
-$env:VERSION='v0.1.0'
+git tag v0.2.0
 .\devops\scripts\build.bat linux amd64 pack
-# 产物：dist\agentforge_v0.1.0_linux_amd64.tar.gz
+# → dist\agentforge_v0.2.0_linux_amd64.tar.gz（没有 -dirty 后缀）
 ```
 
 ```bash
-VERSION=v0.1.0 bash devops/scripts/build.sh linux amd64 pack
+git tag v0.2.0
+bash devops/scripts/build.sh linux amd64 pack
 ```
 
-归档内是 `api`、`migrate`、`ws` 加上 `deploy/{env,nginx,systemd}`，
-解开就能部署，不用再单独传 unit 和 nginx 配置。命名与 `release.yml` 产出的
-`agentforge_<版本>_<os>_<arch>.<ext>` 一致，本地验证和正式发布不会混淆。
+tag 必须打在**干净的**工作区上，否则文件名照样带 `-dirty`。
+
+### 命名与正式发布一致
+
+本地归档和 `release.yml` 产出的都是 `agentforge_<版本>_<os>_<arch>.<ext>`
+（Windows 目标用 `.zip`，其余 `.tar.gz`）。
+
+这样做的目的：本地验证用的包和 GitHub Release 下载的包不会是两种东西。
 
 ## systemd 部署
 

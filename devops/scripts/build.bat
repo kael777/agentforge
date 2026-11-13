@@ -28,6 +28,13 @@ if not defined BUILD_TIME (
   for /f "delims=" %%T in ('powershell -NoProfile -Command "[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')"') do set "BUILD_TIME=%%T"
 )
 
+rem Version defaults to "git describe --tags --always --dirty": an exact tag when
+rem HEAD is tagged, otherwise "<tag>-<commits>-g<sha>[-dirty]". Set VERSION only
+rem when you need to override it (for example to reproduce a past release).
+echo Version: %VERSION%
+echo Commit:  %COMMIT%
+echo Time:    %BUILD_TIME%
+
 if /I "%TARGET%"=="all" (
   call :build windows amd64 || exit /b 1
   call :build linux amd64 || exit /b 1
